@@ -1,0 +1,98 @@
+@startuml "Caso de Uso"
+'!pragma layout smetana
+left to right direction
+skinparam packageStyle rectangle
+skinparam backgroundColor #FEFEFE
+skinparam usecase {
+    BackgroundColor #E1F5FF
+    BorderColor #0277BD
+    ArrowColor #0277BD
+}
+
+' == Atores ==
+
+Actor Usuario
+Actor Aluno as "Aluno"
+Actor Professor as "Professor"
+Actor Empresa as "Empresa Parceira"
+Actor Administrador as "Administrador"
+Actor Sistema as "Sistema (Agendador)"
+Actor Email as "Serviço de Email"
+
+Usuario <|-- Aluno
+Usuario <|-- Professor
+Usuario <|-- Empresa
+Usuario <|-- Administrador
+
+' == Casos de Uso ==
+
+Rectangle "Autenticação" {
+    usecase "01 - Realizar Login" as UC1
+    usecase "02 - Realizar Logout" as UC2
+}
+
+Rectangle "Cadastros" {
+    usecase "03 - Cadastrar Aluno" as UC3
+    usecase "04 - Selecionar Instituição" as UC4
+    usecase "05 - Cadastrar Empresa Parceira" as UC5
+    usecase "06 - Pré-cadastrar Instituição" as UC6
+    usecase "07 - Pré-cadastrar Professor" as UC7
+}
+
+Rectangle "Gerenciamento de Moedas" {
+    usecase "08 - Enviar Moedas" as UC8
+    usecase "09 - Notificar Recebimento por Email" as UC9
+    usecase "10 - Consultar Extrato" as UC10
+    usecase "11 - Creditar Moedas Semestrais" as UC11
+}
+
+Rectangle "Gerenciamento de Vantagens" {
+    usecase "12 - Cadastrar Vantagem" as UC12
+    usecase "13 - Gerenciar Vantagens" as UC13
+    usecase "14 - Consultar Vantagens" as UC14
+    usecase "15 - Resgatar Vantagem" as UC15
+    usecase "16 - Gerar Código de Cupom" as UC16
+    usecase "17 - Enviar Cupom por Email" as UC17
+}
+
+Usuario --> UC1
+Usuario --> UC2
+
+Aluno --> UC3
+Empresa --> UC5
+Administrador --> UC6
+Administrador --> UC7
+
+UC3 ..> UC4 : <<include>>
+
+Professor --> UC8
+Professor --> UC10
+Aluno --> UC10
+Sistema --> UC11
+
+UC8 ..> UC9 : <<include>>
+UC9 --> Email
+
+Empresa --> UC12
+Empresa --> UC13
+Aluno --> UC14
+Aluno --> UC15
+
+UC15 ..> UC14 : <<include>>
+UC15 ..> UC16 : <<include>>
+UC15 ..> UC17 : <<include>>
+UC17 --> Email
+
+' == Include de Login ==
+
+UC2 ..> UC1 : <<include>>
+UC6 ..> UC1 : <<include>>
+UC7 ..> UC1 : <<include>>
+UC8 ..> UC1 : <<include>>
+UC10 ..> UC1 : <<include>>
+UC12 ..> UC1 : <<include>>
+UC13 ..> UC1 : <<include>>
+UC14 ..> UC1 : <<include>>
+UC15 ..> UC1 : <<include>>
+
+@enduml
