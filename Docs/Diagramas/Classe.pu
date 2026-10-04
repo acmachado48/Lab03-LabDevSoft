@@ -1,0 +1,171 @@
+@startuml "Diagrama de Classes"
+'!pragma layout smetana
+skinparam backgroundColor #FEFEFE
+skinparam classAttributeIconSize 0
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam class {
+    BackgroundColor #E1F5FF
+    BorderColor #0277BD
+    ArrowColor #0277BD
+}
+
+' == Usuários ==
+
+package "Usuários" {
+    abstract class Usuario {
+        - id: Long
+        - email: String
+        - login: String
+        - senha: String
+        + autenticar(login: String, senha: String): boolean
+        + encerrarSessao(): void
+    }
+
+    class Administrador {
+        + cadastrarInstituicao(nome: String): Instituicao
+        + importarProfessores(instituicao: Instituicao, lista: List<Professor>): void
+    }
+
+    class Professor {
+        + {static} MOEDAS_POR_SEMESTRE: int = 1000
+        - nome: String
+        - cpf: String
+        - departamento: String
+        + enviarMoedas(aluno: Aluno, valor: int, motivo: String): EnvioMoedas
+        + consultarExtrato(): List<Transacao>
+    }
+
+    class Aluno {
+        - nome: String
+        - cpf: String
+        - rg: String
+        - endereco: String
+        - curso: String
+        + realizarCadastro(): void
+        + consultarVantagens(): List<Vantagem>
+        + resgatarVantagem(vantagem: Vantagem): Resgate
+        + consultarExtrato(): List<Transacao>
+    }
+
+    class EmpresaParceira {
+        - nome: String
+        - cnpj: String
+        + realizarCadastro(): void
+        + cadastrarVantagem(nome: String, descricao: String, foto: String, custo: int): Vantagem
+        + gerenciarVantagem(vantagem: Vantagem): void
+    }
+}
+
+' == Instituições ==
+
+package "Instituições" {
+    class Instituicao {
+        - id: Long
+        - nome: String
+    }
+}
+
+' == Moedas ==
+
+package "Moedas" {
+    class Conta {
+        - id: Long
+        - saldo: int
+        + creditar(valor: int): void
+        + debitar(valor: int): void
+        + possuiSaldo(valor: int): boolean
+        + gerarExtrato(): List<Transacao>
+    }
+
+    abstract class Transacao {
+        - id: Long
+        - data: LocalDateTime
+        - valor: int
+    }
+
+    class CreditoSemestral {
+        - semestre: String
+    }
+
+    class EnvioMoedas {
+        - motivo: String
+    }
+
+    class Resgate {
+        - codigoCupom: String
+        + {static} gerarCodigo(): String
+    }
+}
+
+' == Vantagens ==
+
+package "Vantagens" {
+    class Vantagem {
+        - id: Long
+        - nome: String
+        - descricao: String
+        - foto: String
+        - custo: int
+        - ativa: boolean
+    }
+}
+
+' == Serviços ==
+
+package "Serviços" {
+    class AgendadorSemestral <<service>> {
+        + creditarMoedasSemestrais(professores: List<Professor>): void
+    }
+
+    class ServicoEmail <<service>> {
+        + notificarRecebimento(envio: EnvioMoedas): void
+        + enviarCupomAluno(resgate: Resgate): void
+        + enviarCupomParceiro(resgate: Resgate): void
+    }
+}
+
+' == Herança de Usuários ==
+
+Usuario <|-down- Administrador
+Usuario <|-down- Professor
+Usuario <|-down- Aluno
+Usuario <|-down- EmpresaParceira
+
+' == Instituição ==
+
+Professor "0..*" -down-> "1" Instituicao : vinculadoA
+Aluno "0..*" -down-> "1" Instituicao : estudaEm
+
+' == Contas e Transações ==
+
+Professor "1" *-down- "1" Conta : conta
+Aluno "1" *-down- "1" Conta : conta
+Conta "1..2" o-down- "0..*" Transacao : transacoes
+
+Transacao <|-down- CreditoSemestral
+Transacao <|-down- EnvioMoedas
+Transacao <|-down- Resgate
+
+
+' == Vantagens ==
+
+EmpresaParceira "1" *-down- "0..*" Vantagem : oferece
+Resgate "0..*" -right-> "1" Vantagem : vantagem
+
+' == Serviços ==
+
+AgendadorSemestral .up.> CreditoSemestral : <<cria>>
+ServicoEmail .up.> EnvioMoedas : <<notifica>>
+ServicoEmail .up.> Resgate : <<envia cupom>>
+
+' == Posicionamento ==
+
+Administrador -[hidden]right- Professor
+Professor -[hidden]right- Aluno
+Aluno -[hidden]right- EmpresaParceira
+Instituicao -[hidden]right- Conta
+Conta -[hidden]right- Vantagem
+AgendadorSemestral -[hidden]right- ServicoEmail
+
+@enduml
