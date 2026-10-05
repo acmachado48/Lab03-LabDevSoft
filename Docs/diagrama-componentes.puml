@@ -1,0 +1,75 @@
+@startuml Diagrama_de_Componentes_Sistema_de_Merito
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam component {
+  BackgroundColor White
+  BorderColor #444444
+  ArrowColor #555555
+}
+skinparam package {
+  BackgroundColor #F7F7F7
+  BorderColor #999999
+}
+skinparam actor {
+  BackgroundColor White
+  BorderColor #444444
+}
+skinparam ranksep 60
+skinparam nodesep 40
+
+actor Aluno
+actor Professor
+actor "Empresa\nParceira" as Empresa
+actor Administrador
+
+component "Autenticação" as Auth
+
+package "Cadastros" {
+  component "Cadastro de\nAlunos" as CadAluno
+  component "Cadastro de\nProfessores" as CadProfessor
+  component "Cadastro de\nInstituições" as CadInstituicao
+  component "Cadastro de Empresas\ne Vantagens" as CadEmpresa
+  CadAluno ..> CadInstituicao : seleciona
+  CadProfessor ..> CadInstituicao : vinculado a
+}
+
+package "Moedas" {
+  component "Distribuição\nde Moedas" as DistribuicaoMoedas
+  component "Saldo e Extrato" as Extrato
+  DistribuicaoMoedas --> Extrato : registra
+}
+
+package "Resgate" {
+  component "Resgate de\nVantagens" as ResgateVantagem
+  component "Geração de\nCupom" as Cupom
+  ResgateVantagem --> Cupom : gera
+}
+
+component "Notificação\n(Email)" as Notificacao
+database "Banco de\nDados" as DB
+
+' --- Atores -> Autenticação (ponto único de entrada) ---
+Aluno --> Auth
+Professor --> Auth
+Empresa --> Auth
+Administrador --> Auth
+
+' --- Autenticação -> Subsistemas ---
+Auth --> CadAluno
+Auth --> DistribuicaoMoedas
+Auth --> ResgateVantagem
+
+' --- Integrações entre subsistemas ---
+ResgateVantagem ..> CadEmpresa : consulta vantagem
+ResgateVantagem --> Extrato : registra
+DistribuicaoMoedas --> Notificacao : notifica aluno
+Cupom --> Notificacao : envia cupom/conferência
+
+' --- Persistência  ---
+Cadastros ..> DB
+Moedas ..> DB
+Resgate ..> DB
+
+@enduml
