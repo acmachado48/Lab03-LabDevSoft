@@ -1,0 +1,93 @@
+@startuml DER_Sistema_de_Merito_Estudantil
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam entity {
+  BackgroundColor White
+  BorderColor #444444
+}
+
+entity "Instituição" as Instituicao {
+  * id_instituicao : PK
+  --
+  nome
+}
+
+entity "Aluno" as Aluno {
+  * id_aluno : PK
+  --
+  nome
+  email
+  cpf
+  rg
+  endereco
+  curso
+  login
+  senha
+  saldo_moedas
+  # id_instituicao : FK
+}
+
+entity "Professor" as Professor {
+  * id_professor : PK
+  --
+  nome
+  cpf
+  departamento
+  login
+  senha
+  saldo_moedas
+  # id_instituicao : FK
+}
+
+entity "Empresa Parceira" as Empresa {
+  * id_empresa : PK
+  --
+  nome
+  email
+  login
+  senha
+}
+
+entity "Vantagem" as Vantagem {
+  * id_vantagem : PK
+  --
+  nome
+  descricao
+  foto
+  custo_moedas
+  # id_empresa : FK
+}
+
+entity "Envio de Moedas" as Envio {
+  * id_envio : PK
+  --
+  quantidade
+  motivo
+  data
+  # id_professor : FK
+  # id_aluno : FK
+}
+
+entity "Resgate de Vantagem" as Resgate {
+  * id_resgate : PK
+  --
+  codigo_cupom
+  data
+  # id_aluno : FK
+  # id_vantagem : FK
+}
+
+Instituicao ||--o{ Aluno : "possui"
+Instituicao ||--o{ Professor : "possui"
+
+Professor ||--o{ Envio : "realiza"
+Aluno ||--o{ Envio : "recebe"
+
+Aluno ||--o{ Resgate : "realiza"
+Vantagem ||--o{ Resgate : "é resgatada em"
+
+Empresa ||--o{ Vantagem : "oferece"
+
+@enduml
