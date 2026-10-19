@@ -7,13 +7,16 @@ public record TransacaoResponseDTO(
         Long id, 
         LocalDateTime dataTransacao, 
         String descricao, 
-        String tipo, // "ENTRADA" ou "SAIDA"
+        String nomeProfessor,
+                                   String tipo, // "ENTRADA" ou "SAIDA"
         Integer valor
 ) {
     public static TransacaoResponseDTO fromEntity(Transacao transacao) {
         return new TransacaoResponseDTO(
                 transacao.getId(),
                 transacao.getDataTransacao(),
+                transacao.getAluno().getNome(),
+                transacao.getProfessor().getNome(),
                 transacao.getMotivo(),
                 "ENTRADA",
                 transacao.getValor()

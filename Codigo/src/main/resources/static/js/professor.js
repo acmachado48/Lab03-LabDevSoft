@@ -1,7 +1,11 @@
 const API_URL = 'http://localhost:8080/api';
 
-// Simulação de autenticação (ID do professor logado)
-const PROFESSOR_LOGADO_ID = 1; 
+// Usuário guardado pela tela inicial (index.html) após o login
+const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+if (!usuarioLogado || usuarioLogado.tipo !== 'PROFESSOR') {
+    window.location.href = 'index.html';
+}
+const PROFESSOR_LOGADO_ID = usuarioLogado?.id;
 
 document.addEventListener('DOMContentLoaded', () => {
     carregarDadosProfessor();

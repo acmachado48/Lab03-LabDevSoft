@@ -3,10 +3,12 @@ package br.edu.pucminas.moeda.service;
 import br.edu.pucminas.moeda.dto.VantagemRequestDTO;
 import br.edu.pucminas.moeda.dto.VantagemResponseDTO;
 import br.edu.pucminas.moeda.dto.VantagemUpdateDTO;
+import br.edu.pucminas.moeda.exception.BusinessException;
 import br.edu.pucminas.moeda.exception.ResourceNotFoundException;
 import br.edu.pucminas.moeda.model.EmpresaParceira;
 import br.edu.pucminas.moeda.model.Vantagem;
 import br.edu.pucminas.moeda.repository.EmpresaParceiraRepository;
+import br.edu.pucminas.moeda.repository.ResgateRepository;
 import br.edu.pucminas.moeda.repository.VantagemRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,10 +21,13 @@ public class VantagemService {
 
     private final VantagemRepository vantagemRepository;
     private final EmpresaParceiraRepository empresaRepository;
+    private final ResgateRepository resgateRepository;
 
-    public VantagemService(VantagemRepository vantagemRepository, EmpresaParceiraRepository empresaRepository) {
+    public VantagemService(VantagemRepository vantagemRepository, EmpresaParceiraRepository empresaRepository,
+                           ResgateRepository resgateRepository) {
         this.vantagemRepository = vantagemRepository;
         this.empresaRepository = empresaRepository;
+        this.resgateRepository = resgateRepository;
     }
 
     public VantagemResponseDTO criar(VantagemRequestDTO dto) {
@@ -59,6 +64,10 @@ public class VantagemService {
     public void excluir(Long id) {
         if (!vantagemRepository.existsById(id)) {
             throw new ResourceNotFoundException("Vantagem não encontrada (id " + id + ")");
+        }
+        // Resgates ja feitos precisam continuar no extrato dos alunos
+        if (resgateRepository.existsByVantagemId(id)) {
+            throw new BusinessException("Esta vantagem já foi resgatada por alunos e não pode ser excluída");
         }
         vantagemRepository.deleteById(id);
     }

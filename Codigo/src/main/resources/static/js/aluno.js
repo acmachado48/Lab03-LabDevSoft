@@ -1,7 +1,11 @@
 const API_URL = 'http://localhost:8080/api';
 
-// Simulação de autenticação (Aluno ID 3 do data.sql)
-const ALUNO_LOGADO_ID = 3;
+// Usuário guardado pela tela inicial (index.html) após o login
+const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+if (!usuarioLogado || usuarioLogado.tipo !== 'ALUNO') {
+    window.location.href = 'index.html';
+}
+const ALUNO_LOGADO_ID = usuarioLogado?.id;
 
 let saldoAlunoAtual = 0;
 let vantagensGlobais = [];
@@ -15,17 +19,17 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. Carrega Perfil e Saldo do Aluno
 async function carregarDadosAluno() {
     try {
-        const res = await fetch(`${API_URL}/alunos`);
+        const res = await fetch(`${API_URL}/alunos/${ALUNO_LOGADO_ID}`);
         if (res.ok) {
-            const alunos = await res.json();
-            const aluno = alunos.find(a => a.id === ALUNO_LOGADO_ID) || alunos[0];
-            
-            if (aluno) {
-                document.getElementById('aluno-nome').innerText = aluno.nome;
-                document.getElementById('aluno-curso').innerText = aluno.curso;
-                document.getElementById('aluno-saldo').innerText = aluno.saldoMoedas;
-                saldoAlunoAtual = aluno.saldoMoedas;
-            }
+            const aluno = await res.json();
+            document.getElementById('aluno-nome').innerText = aluno.nome;
+            document.getElementById('aluno-curso').innerText = aluno.curso;
+            document.getElementById('aluno-instituicao').innerText = aluno.nomeInstituicao;
+            document.getElementById('aluno-saldo').innerText = aluno.saldoMoedas;
+            saldoAlunoAtual = aluno.saldoMoedas;
+        } else if (res.status === 404) {
+            // Aluno da sessão não existe mais no banco
+            sair();
         }
     } catch (e) {
         showToast('Erro ao carregar dados do aluno', 'error');
@@ -116,32 +120,93 @@ async function carregarExtratoAluno() {
     if (!tbody) return;
 
     try {
-        const res = await fetch(`${API_URL}/transacoes/aluno/${ALUNO_LOGADO_ID}`);
+        // Busca as moedas recebidas dos professores e as vantagens resgatadas
+        const [resTransacoes, resResgates] = await Promise.all([
+            fetch(`${API_URL}/transacoes/aluno/${ALUNO_LOGADO_ID}`),
+            fetch(`${API_URL}/resgates/aluno/${ALUNO_LOGADO_ID}`)
+        ]);
+        if (!resTransacoes.ok || !resResgates.ok) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger);">Erro ao carregar o extrato.</td></tr>';
+            return;
+        }
+
+        const recebimentos = (await resTransacoes.json()).map(t => ({
+            data: t.dataTransacao,
+            descricao: `${t.motivo} <br><small style="color: var(--text-muted);">Prof. ${t.nomeProfessor}</small>`,
+            tipo: '<span style="color: var(--success); font-weight: 600;">+ Recebido</span>',
+            valor: `<span style="color: var(--success); font-weight: bold;">+ ${t.valor} 🪙</span>`
+        }));
+        const trocas = (await resResgates.json()).map(r => ({
+            data: r.dataResgate,
+            descricao: `${r.descricaoVantagem} (${r.nomeEmpresa}) <br><small style="color: var(--text-muted);">Cupom: <strong>${r.codigoCupom}</strong></small>`,
+            tipo: '<span style="color: var(--danger); font-weight: 600;">- Resgate</span>',
+            valor: `<span style="color: var(--danger); font-weight: bold;">- ${r.valor} 🪙</span>`
+        }));
+        const movimentacoes = [...recebimentos, ...trocas].sort((a, b) => new Date(b.data) - new Date(a.data));
+
+        if (movimentacoes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Nenhuma movimentação registrada no seu histórico.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = movimentacoes.map(m => `
+            <tr>
+                <td>${new Date(m.data).toLocaleDateString('pt-BR')}</td>
+                <td>${m.descricao}</td>
+                <td>${m.tipo}</td>
+                <td>${m.valor}</td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger);">Erro de conexão ao carregar o extrato.</td></tr>';
+    }
+}
+
+// 4. Ação de Resgatar Vantagem
+async function resgatarVantagem(id, custo, descricao) {
+    if (custo > saldoAlunoAtual) {
+        showToast(`Saldo insuficiente! Você precisa de ${custo} moedas para este resgate.`, 'error');
+        return;
+    }
+
+    if (!confirm(`Confirma o resgate de "${descricao}" por ${custo} moedas?`)) return;
+
+    try {
+        const res = await fetch(`${API_URL}/resgates`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                alunoId: ALUNO_LOGADO_ID,
+                vantagemId: id
+            })
+        });
+
         if (res.ok) {
-            const transacoes = await res.json();
-
-            if (transacoes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Nenhuma movimentação registrada no seu histórico.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = transacoes.map(t => {
-                const dataFormatada = new Date(t.dataTransacao).toLocaleDateString('pt-BR');
-                return `
-                    <tr>
-                        <td>${dataFormatada}</td>
-                        <td>${t.motivo}</td>
-                        <td><span style="color: var(--success); font-weight: 600;">+ Recebido</span></td>
-                        <td style="color: var(--success); font-weight: bold;">+ ${t.valor} 🪙</td>
-                    </tr>
-                `;
-            }).join('');
+            const resgate = await res.json();
+            showToast(`Vantagem resgatada! Código do cupom: ${resgate.codigoCupom} (também disponível no extrato)`);
+            carregarDadosAluno(); // Atualiza saldo na tela
+            carregarExtratoAluno();
         } else {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Erro ao carregar o histórico.</td></tr>';
+            const data = await res.json().catch(() => null);
+            showToast(data?.message || 'Erro ao resgatar vantagem.', 'error');
         }
     } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Erro de conexão com o servidor.</td></tr>';
+        showToast('Erro de conexão ao tentar resgatar.', 'error');
     }
+}
+
+function sair() {
+    localStorage.removeItem('usuarioLogado');
+    window.location.href = 'index.html';
+}
+
+// Alternate entre as abas
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+    document.getElementById(`tab-${tab}`).style.display = 'block';
+    event.currentTarget.classList.add('active');
 }
 
 function showToast(mensagem, tipo = 'success') {
