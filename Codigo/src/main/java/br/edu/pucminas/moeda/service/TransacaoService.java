@@ -58,4 +58,9 @@ public class TransacaoService {
                 .map(TransacaoResponseDTO::fromEntity)
                 .toList();
     }
+
+    public List<TransacaoResponseDTO> listarPorAluno(Long alunoId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'listarPorAluno'");
+    }
 }

@@ -28,4 +28,9 @@ public class TransacaoController {
     public List<TransacaoResponseDTO> listarPorProfessor(@PathVariable Long professorId) {
         return service.listarPorProfessor(professorId);
     }
+
+     @GetMapping("/aluno/{alunoId}")
+public List<TransacaoResponseDTO> listarPorAluno(@PathVariable Long alunoId) {
+    return service.listarPorAluno(alunoId);
+}
 }

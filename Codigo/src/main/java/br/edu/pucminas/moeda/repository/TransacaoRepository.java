@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface TransacaoRepository extends JpaRepository<Transacao, Long> {
     List<Transacao> findByProfessorIdOrderByDataTransacaoDesc(Long professorId);
+    List<Transacao> findByAlunoIdOrderByDataTransacaoDesc(Long alunoId);
 }
