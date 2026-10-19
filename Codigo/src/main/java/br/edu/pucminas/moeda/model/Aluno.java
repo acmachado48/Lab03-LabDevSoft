@@ -77,4 +77,15 @@ public class Aluno extends Usuario {
     public void setInstituicao(Instituicao instituicao) {
         this.instituicao = instituicao;
     }
+
+    @Column(nullable = false)
+private Integer saldoMoedas = 0;
+
+public Integer getSaldoMoedas() {
+    return saldoMoedas;
+}
+
+public void setSaldoMoedas(Integer saldoMoedas) {
+    this.saldoMoedas = saldoMoedas;
+}
 }
