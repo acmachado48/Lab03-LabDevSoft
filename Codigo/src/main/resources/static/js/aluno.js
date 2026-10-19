@@ -92,7 +92,7 @@ window.resgatarVantagem = async function(id) {
     if (!confirm(`Confirma o resgate de "${vantagem.descricao}" por ${vantagem.custoEmMoedas} moedas?`)) return;
 
     try {
-        const res = await fetch(`${API_URL}/resgatar`, {
+        const res = await fetch(`${API_URL}/resgates`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -102,7 +102,8 @@ window.resgatarVantagem = async function(id) {
         });
 
         if (res.ok) {
-            showToast('Vantagem resgatada com sucesso! O cupom foi enviado ao seu e-mail.');
+            const resgate = await res.json();
+            showToast(`Vantagem resgatada! Código do cupom: ${resgate.codigoCupom} (também disponível no extrato)`);
             carregarDadosAluno();    // Atualiza o saldo atualizado
             carregarExtratoAluno();  // Recarrega o extrato com o novo registo
         } else {
@@ -162,51 +163,9 @@ async function carregarExtratoAluno() {
     }
 }
 
-// 4. Ação de Resgatar Vantagem
-async function resgatarVantagem(id, custo, descricao) {
-    if (custo > saldoAlunoAtual) {
-        showToast(`Saldo insuficiente! Você precisa de ${custo} moedas para este resgate.`, 'error');
-        return;
-    }
-
-    if (!confirm(`Confirma o resgate de "${descricao}" por ${custo} moedas?`)) return;
-
-    try {
-        const res = await fetch(`${API_URL}/resgates`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                alunoId: ALUNO_LOGADO_ID,
-                vantagemId: id
-            })
-        });
-
-        if (res.ok) {
-            const resgate = await res.json();
-            showToast(`Vantagem resgatada! Código do cupom: ${resgate.codigoCupom} (também disponível no extrato)`);
-            carregarDadosAluno(); // Atualiza saldo na tela
-            carregarExtratoAluno();
-        } else {
-            const data = await res.json().catch(() => null);
-            showToast(data?.message || 'Erro ao resgatar vantagem.', 'error');
-        }
-    } catch (e) {
-        showToast('Erro de conexão ao tentar resgatar.', 'error');
-    }
-}
-
 function sair() {
     localStorage.removeItem('usuarioLogado');
     window.location.href = 'index.html';
-}
-
-// Alternate entre as abas
-function switchTab(tab) {
-    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-
-    document.getElementById(`tab-${tab}`).style.display = 'block';
-    event.currentTarget.classList.add('active');
 }
 
 function showToast(mensagem, tipo = 'success') {

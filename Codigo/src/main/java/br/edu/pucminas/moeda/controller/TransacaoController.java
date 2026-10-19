@@ -1,12 +1,10 @@
 package br.edu.pucminas.moeda.controller;
 
-import br.edu.pucminas.moeda.dto.ResgateRequestDTO;
 import br.edu.pucminas.moeda.dto.TransacaoRequestDTO;
 import br.edu.pucminas.moeda.dto.TransacaoResponseDTO;
 import br.edu.pucminas.moeda.service.TransacaoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -31,16 +29,8 @@ public class TransacaoController {
         return service.listarPorProfessor(professorId);
     }
 
-     @GetMapping("/aluno/{alunoId}")
-     public List<TransacaoResponseDTO> listarPorAluno(@PathVariable Long alunoId) {
-    return service.listarPorAluno(alunoId);
-}
-
-@PostMapping("/resgatar")
-    public ResponseEntity<Void> resgatarVantagem(@RequestBody @Valid ResgateRequestDTO dto) {
-        service.processarResgate(dto.alunoId(), dto.vantagemId());
-        return ResponseEntity.ok().build();
+    @GetMapping("/aluno/{alunoId}")
+    public List<TransacaoResponseDTO> listarPorAluno(@PathVariable Long alunoId) {
+        return service.listarPorAluno(alunoId);
     }
-
-
 }

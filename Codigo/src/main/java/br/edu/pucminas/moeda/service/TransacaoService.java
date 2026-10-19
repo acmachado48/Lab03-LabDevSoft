@@ -7,7 +7,6 @@ import br.edu.pucminas.moeda.exception.ResourceNotFoundException;
 import br.edu.pucminas.moeda.model.Aluno;
 import br.edu.pucminas.moeda.model.Professor;
 import br.edu.pucminas.moeda.model.Transacao;
-import br.edu.pucminas.moeda.model.Vantagem;
 import br.edu.pucminas.moeda.repository.AlunoRepository;
 import br.edu.pucminas.moeda.repository.ProfessorRepository;
 import br.edu.pucminas.moeda.repository.TransacaoRepository;
@@ -66,6 +65,4 @@ public class TransacaoService {
                 .map(TransacaoResponseDTO::fromEntity)
                 .toList();
     }
-
-    
 }
