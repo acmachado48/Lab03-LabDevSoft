@@ -2,6 +2,7 @@ package br.edu.pucminas.moeda.controller;
 
 import br.edu.pucminas.moeda.dto.VantagemRequestDTO;
 import br.edu.pucminas.moeda.dto.VantagemResponseDTO;
+import br.edu.pucminas.moeda.dto.VantagemUpdateDTO;
 import br.edu.pucminas.moeda.service.VantagemService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.List;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/vantagens")
 public class VantagemController {
@@ -41,5 +43,10 @@ public class VantagemController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void excluir(@PathVariable Long id) {
         service.excluir(id);
+    }
+
+    @PutMapping("/{id}")
+    public VantagemResponseDTO atualizar(@PathVariable Long id, @RequestBody @Valid VantagemUpdateDTO dto) {
+        return service.atualizar(id, dto);
     }
 }

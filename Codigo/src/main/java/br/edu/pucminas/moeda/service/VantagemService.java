@@ -2,6 +2,7 @@ package br.edu.pucminas.moeda.service;
 
 import br.edu.pucminas.moeda.dto.VantagemRequestDTO;
 import br.edu.pucminas.moeda.dto.VantagemResponseDTO;
+import br.edu.pucminas.moeda.dto.VantagemUpdateDTO;
 import br.edu.pucminas.moeda.exception.ResourceNotFoundException;
 import br.edu.pucminas.moeda.model.EmpresaParceira;
 import br.edu.pucminas.moeda.model.Vantagem;
@@ -61,4 +62,17 @@ public class VantagemService {
         }
         vantagemRepository.deleteById(id);
     }
+
+    public VantagemResponseDTO atualizar(Long id, VantagemUpdateDTO dto) {
+        Vantagem vantagem = vantagemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vantagem não encontrada (id " + id + ")"));
+
+        vantagem.setDescricao(dto.descricao());
+        vantagem.setCustoEmMoedas(dto.custoEmMoedas());
+        vantagem.setFoto(dto.foto());
+
+        vantagem = vantagemRepository.save(vantagem);
+        return VantagemResponseDTO.fromEntity(vantagem);
+    }
 }
+
