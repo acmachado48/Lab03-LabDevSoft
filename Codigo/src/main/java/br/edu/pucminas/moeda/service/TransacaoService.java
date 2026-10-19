@@ -7,6 +7,7 @@ import br.edu.pucminas.moeda.exception.ResourceNotFoundException;
 import br.edu.pucminas.moeda.model.Aluno;
 import br.edu.pucminas.moeda.model.Professor;
 import br.edu.pucminas.moeda.model.Transacao;
+import br.edu.pucminas.moeda.model.Vantagem;
 import br.edu.pucminas.moeda.repository.AlunoRepository;
 import br.edu.pucminas.moeda.repository.ProfessorRepository;
 import br.edu.pucminas.moeda.repository.TransacaoRepository;
@@ -59,8 +60,37 @@ public class TransacaoService {
                 .toList();
     }
 
-    public List<TransacaoResponseDTO> listarPorAluno(Long alunoId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'listarPorAluno'");
+    @Transactional(readOnly = true)
+public List<TransacaoResponseDTO> listarPorAluno(Long alunoId) {
+    return transacaoRepository.findByAlunoIdOrderByDataTransacaoDesc(alunoId).stream()
+            .map(TransacaoResponseDTO::fromEntity)
+            .toList();
+}
+
+public void processarResgate(Long alunoId, Long vantagemId) {
+        Aluno aluno = alunoRepository.findById(alunoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Aluno não encontrado"));
+        
+        Vantagem vantagem = vantagemRepository.findById(vantagemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vantagem não encontrada"));
+
+        if (aluno.getSaldoMoedas() < vantagem.getCustoEmMoedas()) {
+            throw new BusinessException("Saldo insuficiente para realizar este resgate.");
+        }
+
+        // Deduz as moedas do aluno
+        aluno.setSaldoMoedas(aluno.getSaldoMoedas() - vantagem.getCustoEmMoedas());
+        alunoRepository.save(aluno);
+
+        // Opcional: Registar transação de saída se desejar exibir no extrato
+        Transacao transacao = new Transacao();
+        transacao.setAluno(aluno);
+        transacao.setValor(-vantagem.getCustoEmMoedas());
+        transacao.setMotivo("Resgate da vantagem: " + vantagem.getDescricao());
+        // Se a entidade Transacao exigir um professor, ajuste conforme a modelagem ou permita nulo para resgates
+        
+        // transacaoRepository.save(transacao);
     }
+
+    
 }
