@@ -50,9 +50,8 @@ document.getElementById('form-aluno').addEventListener('submit', async (e) => {
         const data = await res.json().catch(() => null);
 
         if (res.ok || res.status === 201) {
-            showToast('Cadastro realizado com sucesso!', 'success');
-            document.getElementById('form-aluno').reset();
-            // window.location.href = 'login.html'; // Descomente para redirecionar
+            // Volta para a tela inicial, que exibe a confirmação do cadastro
+            window.location.href = 'index.html?cadastro=ok';
         } else if (res.status === 400 && data && data.fieldErrors) {
             for (const [campo, msg] of Object.entries(data.fieldErrors)) {
                 const span = document.getElementById(`erro-${campo}`);

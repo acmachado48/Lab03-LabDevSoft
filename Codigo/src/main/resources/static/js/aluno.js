@@ -1,7 +1,11 @@
 const API_URL = 'http://localhost:8080/api';
 
-// Simulação de autenticação (Aluno ID 3 pré-cadastrado no data.sql)
-const ALUNO_LOGADO_ID = 3;
+// Usuário guardado pela tela inicial (index.html) após o login
+const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+if (!usuarioLogado || usuarioLogado.tipo !== 'ALUNO') {
+    window.location.href = 'index.html';
+}
+const ALUNO_LOGADO_ID = usuarioLogado?.id;
 
 let saldoAlunoAtual = 0;
 
@@ -14,17 +18,17 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. Carrega Perfil e Saldo do Aluno
 async function carregarDadosAluno() {
     try {
-        const res = await fetch(`${API_URL}/alunos`);
+        const res = await fetch(`${API_URL}/alunos/${ALUNO_LOGADO_ID}`);
         if (res.ok) {
-            const alunos = await res.json();
-            const aluno = alunos.find(a => a.id === ALUNO_LOGADO_ID);
-            
-            if (aluno) {
-                document.getElementById('aluno-nome').innerText = aluno.nome;
-                document.getElementById('aluno-curso').innerText = aluno.curso;
-                document.getElementById('aluno-saldo').innerText = aluno.saldoMoedas;
-                saldoAlunoAtual = aluno.saldoMoedas;
-            }
+            const aluno = await res.json();
+            document.getElementById('aluno-nome').innerText = aluno.nome;
+            document.getElementById('aluno-curso').innerText = aluno.curso;
+            document.getElementById('aluno-instituicao').innerText = aluno.nomeInstituicao;
+            document.getElementById('aluno-saldo').innerText = aluno.saldoMoedas;
+            saldoAlunoAtual = aluno.saldoMoedas;
+        } else if (res.status === 404) {
+            // Aluno da sessão não existe mais no banco
+            sair();
         }
     } catch (e) {
         showToast('Erro ao carregar dados do aluno', 'error');
@@ -129,6 +133,11 @@ async function resgatarVantagem(id, custo, descricao) {
     } catch (e) {
         showToast('Erro de conexão ao tentar resgatar.', 'error');
     }
+}
+
+function sair() {
+    localStorage.removeItem('usuarioLogado');
+    window.location.href = 'index.html';
 }
 
 // Alternate entre as abas

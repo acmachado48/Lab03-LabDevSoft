@@ -3,177 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Mérito - Admin</title>
+    <title>Entrar - Sistema de Mérito</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/cadastro-aluno.css">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>Mérito Admin</h2>
+    <div class="auth-container auth-container-sm">
+        <!-- Toast de Notificação -->
+        <div id="toast" class="toast hidden"></div>
+
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2>Sistema de Mérito</h2>
+                <p>Entre com sua conta para acessar seu painel</p>
             </div>
-            <nav class="sidebar-nav">
-                <button class="nav-btn active" onclick="switchView('empresas')">Empresas Parceiras</button>
-                <button class="nav-btn" onclick="switchView('vantagens')">Vantagens (Produtos)</button>
-            </nav>
-        </aside>
 
-        <!-- Conteúdo Principal -->
-        <main class="main-content">
-            <!-- Toast de Notificação -->
-            <div id="toast" class="toast hidden"></div>
-
-            <!-- View: Empresas -->
-            <section id="view-empresas" class="view-section active">
-                <div class="section-header">
-                    <h1>Empresas Parceiras</h1>
-                    <button class="btn btn-primary" onclick="abrirModalEmpresa()">+ Nova Empresa</button>
-                </div>
-                <div class="card">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nome</th>
-                                <th>CNPJ</th>
-                                <th>E-mail</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-empresas">
-                            <!-- Preenchido via JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- View: Vantagens -->
-            <section id="view-vantagens" class="view-section">
-                <div class="section-header">
-                    <h1>Vantagens Cadastradas</h1>
-                    <button class="btn btn-primary" onclick="abrirModalVantagem()">+ Nova Vantagem</button>
-                </div>
-                <div class="card">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Descrição</th>
-                                <th>Custo (Moedas)</th>
-                                <th>Empresa</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-vantagens">
-                            <!-- Preenchido via JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Modal: Empresa -->
-    <div id="modal-empresa" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="modal-empresa-titulo">Cadastrar Empresa</h2>
-                <button class="close-btn" onclick="fecharModal('modal-empresa')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="form-empresa">
-                    <input type="hidden" id="empresa-id">
-                    
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Razão Social</label>
-                            <input type="text" id="empresa-nome" required>
-                            <span class="error-msg" id="erro-nome"></span>
-                        </div>
-                        <div class="form-group">
-                            <label>CNPJ</label>
-                            <input type="text" id="empresa-cnpj" maxlength="14" required>
-                            <span class="error-msg" id="erro-cnpj"></span>
-                        </div>
-                        <div class="form-group">
-                            <label>E-mail</label>
-                            <input type="email" id="empresa-email" required>
-                            <span class="error-msg" id="erro-email"></span>
-                        </div>
-                        <div class="form-group">
-                            <label>Telefone</label>
-                            <input type="text" id="empresa-telefone">
-                            <span class="error-msg" id="erro-telefone"></span>
-                        </div>
-                        <div class="form-group">
-                            <label>Login</label>
-                            <input type="text" id="empresa-login" required>
-                            <span class="error-msg" id="erro-login"></span>
-                        </div>
-                        <div class="form-group">
-                            <label>Senha <small id="senha-hint"></small></label>
-                            <input type="password" id="empresa-senha">
-                            <span class="error-msg" id="erro-senha"></span>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="fecharModal('modal-empresa')">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Salvar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Vantagem -->
-    <div id="modal-vantagem" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="modal-vantagem-titulo">Cadastrar Vantagem</h2>
-                <button class="close-btn" onclick="fecharModal('modal-vantagem')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="form-vantagem">
-                    <input type="hidden" id="vantagem-id">
-                    
+            <form id="form-login">
+                <div class="form-grid form-grid-single">
                     <div class="form-group">
-                        <label>Empresa Parceira</label>
-                        <select id="vantagem-empresa" required></select>
-                        <span class="error-msg" id="erro-empresaId"></span>
+                        <label>Login ou E-mail</label>
+                        <input type="text" id="login" autocomplete="username" required>
+                        <span class="error-msg" id="erro-login"></span>
                     </div>
 
                     <div class="form-group">
-                        <label>Descrição do Produto/Vantagem</label>
-                        <input type="text" id="vantagem-descricao" required>
-                        <span class="error-msg" id="erro-descricao"></span>
+                        <label>Senha</label>
+                        <input type="password" id="senha" autocomplete="current-password" required>
+                        <span class="error-msg" id="erro-senha"></span>
                     </div>
+                </div>
 
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Custo em Moedas</label>
-                            <input type="number" id="vantagem-custo" min="1" required>
-                            <span class="error-msg" id="erro-custoEmMoedas"></span>
-                        </div>
-                        <div class="form-group">
-                            <label>URL da Foto</label>
-                            <input type="url" id="vantagem-foto" placeholder="https://..." required>
-                            <span class="error-msg" id="erro-foto"></span>
-                        </div>
-                    </div>
-                    
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="fecharModal('modal-vantagem')">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Salvar</button>
-                    </div>
-                </form>
-            </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+                    <a href="cadastro-aluno.html" class="link-voltar">É aluno e ainda não tem conta? Cadastre-se</a>
+                    <br>
+                    <a href="admin.html" class="link-voltar link-discreto">Acesso administrativo</a>
+                </div>
+            </form>
         </div>
     </div>
 
-    <script src="js/script.js"></script>
+    <script src="js/login.js"></script>
 </body>
 </html>

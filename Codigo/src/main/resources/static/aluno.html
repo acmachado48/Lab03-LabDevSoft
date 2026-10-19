@@ -54,6 +54,22 @@
             margin-top: 2px;
         }
 
+        .aluno-acoes {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn-sair {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-sair:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
         /* Grid de Vantagens */
         .vantagens-grid {
             display: grid;
@@ -159,9 +175,12 @@
                 <h1>Olá, <span id="aluno-nome">Carregando...</span> 👋</h1>
                 <p><span id="aluno-curso">...</span> — <span id="aluno-instituicao">...</span></p>
             </div>
-            <div class="saldo-card">
-                <label>Seu Saldo</label>
-                <div class="valor"><span id="aluno-saldo">0</span> 🪙</div>
+            <div class="aluno-acoes">
+                <div class="saldo-card">
+                    <label>Seu Saldo</label>
+                    <div class="valor"><span id="aluno-saldo">0</span> 🪙</div>
+                </div>
+                <button class="btn btn-sair" onclick="sair()">Sair</button>
             </div>
         </header>
 
