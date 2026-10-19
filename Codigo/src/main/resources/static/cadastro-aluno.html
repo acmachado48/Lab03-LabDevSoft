@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Aluno - Sistema de Mérito</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/cadastro-aluno.css">
+</head>
+<body>
+    <div class="auth-container">
+        <!-- Toast de Notificação -->
+        <div id="toast" class="toast hidden"></div>
+
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2>Cadastro de Aluno</h2>
+                <p>Crie sua conta para participar do sistema de mérito</p>
+            </div>
+            
+            <form id="form-aluno">
+                <div class="form-grid">
+                    <!-- Dados Pessoais -->
+                    <div class="form-group span-2">
+                        <label>Nome Completo</label>
+                        <input type="text" id="aluno-nome" required>
+                        <span class="error-msg" id="erro-nome"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>CPF (Apenas números)</label>
+                        <input type="text" id="aluno-cpf" maxlength="11" required>
+                        <span class="error-msg" id="erro-cpf"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>RG</label>
+                        <input type="text" id="aluno-rg" required>
+                        <span class="error-msg" id="erro-rg"></span>
+                    </div>
+
+                    <div class="form-group span-2">
+                        <label>Endereço Completo</label>
+                        <input type="text" id="aluno-endereco" required>
+                        <span class="error-msg" id="erro-endereco"></span>
+                    </div>
+
+                    <!-- Dados Acadêmicos -->
+                    <div class="form-group">
+                        <label>Instituição de Ensino</label>
+                        <select id="aluno-instituicao" required>
+                            <option value="">Carregando instituições...</option>
+                        </select>
+                        <span class="error-msg" id="erro-instituicaoId"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Curso</label>
+                        <input type="text" id="aluno-curso" required>
+                        <span class="error-msg" id="erro-curso"></span>
+                    </div>
+
+                    <!-- Dados de Acesso -->
+                    <div class="form-group span-2">
+                        <label>E-mail</label>
+                        <input type="email" id="aluno-email" required>
+                        <span class="error-msg" id="erro-email"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Login</label>
+                        <input type="text" id="aluno-login" required>
+                        <span class="error-msg" id="erro-login"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Senha</label>
+                        <input type="password" id="aluno-senha" required minlength="6">
+                        <span class="error-msg" id="erro-senha"></span>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-block">Criar Conta</button>
+                    <a href="login.html" class="link-voltar">Já tem uma conta? Faça login</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/cadastro-aluno.js"></script>
+</body>
+</html>
