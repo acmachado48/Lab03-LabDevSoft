@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel do Professor - Mérito</title>
+    <link rel="stylesheet" href="css/styles.css"> <!-- Reutilize o seu CSS principal -->
+    <style>
+        .dashboard-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--primary); color: white; padding: 20px 30px; border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        .saldo-box h3 { font-size: 14px; opacity: 0.9; }
+        .saldo-box h1 { font-size: 36px; margin-top: 5px; }
+        .grid-panel { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+    </style>
+</head>
+<body>
+    <div class="app-container" style="padding: 40px; max-width: 1200px; margin: 0 auto; display: block;">
+        
+        <!-- Cabeçalho de Saldo -->
+        <div class="dashboard-header">
+            <div>
+                <h2>Olá, Professor <span id="nome-prof">Carregando...</span></h2>
+                <p>Bem-vindo ao seu painel de reconhecimento acadêmico.</p>
+            </div>
+            <div class="saldo-box">
+                <h3>SALDO DISPONÍVEL</h3>
+                <h1><span id="saldo-prof">0</span> 🪙</h1>
+            </div>
+        </div>
+
+        <div class="grid-panel">
+            <!-- Formulário de Envio -->
+            <div class="card" style="padding: 24px; align-self: start;">
+                <h3 style="margin-bottom: 20px;">Reconhecer Aluno</h3>
+                <form id="form-doacao">
+                    <div class="form-group">
+                        <label>Selecionar Aluno</label>
+                        <select id="select-aluno" required>
+                            <option value="">Carregando alunos...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantidade de Moedas</label>
+                        <input type="number" id="qtd-moedas" min="1" max="1000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Motivo do Reconhecimento (Obrigatório)</label>
+                        <textarea id="motivo" rows="4" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc;"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Enviar Moedas</button>
+                </form>
+            </div>
+
+            <!-- Extrato / Histórico -->
+            <div class="card" style="padding: 24px;">
+                <h3 style="margin-bottom: 20px;">Extrato de Envios</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Aluno</th>
+                            <th>Motivo</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-extrato">
+                        <!-- Preenchido via JS -->
+                        <tr><td colspan="4" style="text-align: center;">Nenhuma transação realizada ainda.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="js/professor.js"></script>
+</body>
+</html>

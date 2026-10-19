@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Aluno - Sistema de Mérito</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .aluno-header {
+            background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+            color: white;
+            padding: 28px 32px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.2);
+        }
+
+        .aluno-info h1 {
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .aluno-info p {
+            opacity: 0.85;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .saldo-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            padding: 16px 24px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: right;
+        }
+
+        .saldo-card label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.9;
+        }
+
+        .saldo-card .valor {
+            font-size: 32px;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        /* Grid de Vantagens */
+        .vantagens-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .vantagem-card {
+            background: var(--surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .vantagem-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .vantagem-foto {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            background: #e5e7eb;
+        }
+
+        .vantagem-body {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .vantagem-empresa {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .vantagem-titulo {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 12px;
+            flex: 1;
+        }
+
+        .vantagem-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .custo-tag {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 16px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container" style="padding: 40px; max-width: 1200px; margin: 0 auto; display: block;">
+        
+        <!-- Toast de Notificação -->
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- Cabeçalho com Saldo do Aluno -->
+        <header class="aluno-header">
+            <div class="aluno-info">
+                <h1>Olá, <span id="aluno-nome">Carregando...</span> 👋</h1>
+                <p><span id="aluno-curso">...</span> — <span id="aluno-instituicao">...</span></p>
+            </div>
+            <div class="saldo-card">
+                <label>Seu Saldo</label>
+                <div class="valor"><span id="aluno-saldo">0</span> 🪙</div>
+            </div>
+        </header>
+
+        <!-- Navegação por Abas -->
+        <nav class="tabs">
+            <button class="tab-btn active" onclick="switchTab('vantagens')">Vantagens Disponíveis</button>
+            <button class="tab-btn" onclick="switchTab('extrato')">Meu Extrato</button>
+        </nav>
+
+        <!-- Aba 1: Vantagens / Resgate -->
+        <section id="tab-vantagens" class="tab-content">
+            <div class="section-header">
+                <h2>Resgatar Vantagens</h2>
+                <p style="color: var(--text-muted); font-size: 14px;">Troque suas moedas por descontos, produtos e serviços de empresas parceiras.</p>
+            </div>
+            <div id="grid-vantagens" class="vantagens-grid">
+                <!-- Cards preenchidos via JS -->
+                <p style="color: var(--text-muted);">Carregando vantagens...</p>
+            </div>
+        </section>
+
+        <!-- Aba 2: Extrato da Conta -->
+        <section id="tab-extrato" class="tab-content" style="display: none;">
+            <div class="section-header">
+                <h2>Extrato de Moedas</h2>
+            </div>
+            <div class="card" style="padding: 20px;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição / Origem</th>
+                            <th>Tipo</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-extrato-aluno">
+                        <!-- Preenchido via JS -->
+                        <tr><td colspan="4" style="text-align: center;">Carregando histórico...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script src="js/aluno.js"></script>
+</body>
+</html>
