@@ -242,6 +242,7 @@ async function deletarVantagem(id) {
         showToast('Vantagem excluída com sucesso');
         carregarVantagens();
     } else {
-        showToast('Erro ao excluir vantagem', 'error');
+        const data = await res.json().catch(() => null);
+        showToast(data?.message || 'Erro ao excluir vantagem', 'error');
     }
 }

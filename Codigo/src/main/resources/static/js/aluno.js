@@ -73,32 +73,45 @@ async function carregarVantagens() {
 async function carregarExtratoAluno() {
     const tbody = document.getElementById('tbody-extrato-aluno');
     try {
-        // Busca transações recebidas do professor
-        const res = await fetch(`${API_URL}/transacoes/aluno/${ALUNO_LOGADO_ID}`);
-        if (res.ok) {
-            const transacoes = await res.json();
-
-            if (transacoes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Nenhuma movimentação registrada no seu histórico.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = transacoes.map(t => {
-                const dataFormatada = new Date(t.dataTransacao).toLocaleDateString('pt-BR');
-                return `
-                    <tr>
-                        <td>${dataFormatada}</td>
-                        <td>${t.motivo}</td>
-                        <td><span style="color: var(--success); font-weight: 600;">+ Recebido</span></td>
-                        <td style="color: var(--success); font-weight: bold;">+ ${t.valor} 🪙</td>
-                    </tr>
-                `;
-            }).join('');
-        } else {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Nenhuma doação recebida ainda.</td></tr>';
+        // Busca as moedas recebidas dos professores e as vantagens resgatadas
+        const [resTransacoes, resResgates] = await Promise.all([
+            fetch(`${API_URL}/transacoes/aluno/${ALUNO_LOGADO_ID}`),
+            fetch(`${API_URL}/resgates/aluno/${ALUNO_LOGADO_ID}`)
+        ]);
+        if (!resTransacoes.ok || !resResgates.ok) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger);">Erro ao carregar o extrato.</td></tr>';
+            return;
         }
+
+        const recebimentos = (await resTransacoes.json()).map(t => ({
+            data: t.dataTransacao,
+            descricao: `${t.motivo} <br><small style="color: var(--text-muted);">Prof. ${t.nomeProfessor}</small>`,
+            tipo: '<span style="color: var(--success); font-weight: 600;">+ Recebido</span>',
+            valor: `<span style="color: var(--success); font-weight: bold;">+ ${t.valor} 🪙</span>`
+        }));
+        const trocas = (await resResgates.json()).map(r => ({
+            data: r.dataResgate,
+            descricao: `${r.descricaoVantagem} (${r.nomeEmpresa}) <br><small style="color: var(--text-muted);">Cupom: <strong>${r.codigoCupom}</strong></small>`,
+            tipo: '<span style="color: var(--danger); font-weight: 600;">- Resgate</span>',
+            valor: `<span style="color: var(--danger); font-weight: bold;">- ${r.valor} 🪙</span>`
+        }));
+        const movimentacoes = [...recebimentos, ...trocas].sort((a, b) => new Date(b.data) - new Date(a.data));
+
+        if (movimentacoes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Nenhuma movimentação registrada no seu histórico.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = movimentacoes.map(m => `
+            <tr>
+                <td>${new Date(m.data).toLocaleDateString('pt-BR')}</td>
+                <td>${m.descricao}</td>
+                <td>${m.tipo}</td>
+                <td>${m.valor}</td>
+            </tr>
+        `).join('');
     } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Nenhuma doação recebida ainda.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger);">Erro de conexão ao carregar o extrato.</td></tr>';
     }
 }
 
@@ -112,8 +125,7 @@ async function resgatarVantagem(id, custo, descricao) {
     if (!confirm(`Confirma o resgate de "${descricao}" por ${custo} moedas?`)) return;
 
     try {
-        // Envia requisição de resgate ao backend (Será processado se a rota de resgate estiver ativa)
-        const res = await fetch(`${API_URL}/resgatar`, {
+        const res = await fetch(`${API_URL}/resgates`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -123,7 +135,8 @@ async function resgatarVantagem(id, custo, descricao) {
         });
 
         if (res.ok) {
-            showToast('Vantagem resgatada com sucesso! O cupom foi enviado ao seu e-mail.');
+            const resgate = await res.json();
+            showToast(`Vantagem resgatada! Código do cupom: ${resgate.codigoCupom} (também disponível no extrato)`);
             carregarDadosAluno(); // Atualiza saldo na tela
             carregarExtratoAluno();
         } else {

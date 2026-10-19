@@ -59,8 +59,10 @@ public class TransacaoService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<TransacaoResponseDTO> listarPorAluno(Long alunoId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'listarPorAluno'");
+        return transacaoRepository.findByAlunoIdOrderByDataTransacaoDesc(alunoId).stream()
+                .map(TransacaoResponseDTO::fromEntity)
+                .toList();
     }
 }
