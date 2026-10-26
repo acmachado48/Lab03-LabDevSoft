@@ -13,6 +13,17 @@ cd Codigo
 
 A aplicação sobe em `http://localhost:8080`. O console do banco fica em `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:file:./data/moeda`, usuário `sa`, sem senha).
 
+## Configuração de email
+
+O envio de emails de transações usa SMTP. Configure `SMTP_HOST`, `SMTP_PORT`,
+`SMTP_USERNAME`, `SMTP_PASSWORD` e, quando necessário, `SMTP_AUTH` e
+`SMTP_STARTTLS_ENABLE` e `SMTP_STARTTLS_REQUIRED` no ambiente antes de iniciar
+a aplicação. Para Gmail, os padrões são `smtp.gmail.com`, porta `587` e
+autenticação com STARTTLS. Use uma senha de app em `SMTP_PASSWORD`, não a senha
+normal da conta. O remetente pode ser definido com `SMTP_FROM` e, por padrão,
+usa o endereço configurado em `SMTP_USERNAME`. Não armazene a senha SMTP nos
+arquivos do projeto.
+
 ## Estrutura do código (MVC em camadas)
 
 ```
