@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Envio de moedas realizado</title>
+</head>
+<body>
+    <p>Olá, <span th:text="${nomeDestinatario}">Professor</span>.</p>
+    <p>O envio de moedas foi realizado com sucesso.</p>
+    <p>
+        Você enviou <strong th:text="${quantidade}">0</strong> moedas para
+        <strong th:text="${nomeAluno}">Aluno</strong>.
+    </p>
+    <p>Motivo: <span th:text="${motivo}">Motivo do reconhecimento</span></p>
+    <p>Atenciosamente,<br>Equipe do Sistema de Mérito</p>
+</body>
+</html>
