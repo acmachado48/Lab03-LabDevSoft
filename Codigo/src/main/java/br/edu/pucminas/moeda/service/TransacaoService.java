@@ -20,11 +20,14 @@ public class TransacaoService {
     private final TransacaoRepository transacaoRepository;
     private final ProfessorRepository professorRepository;
     private final AlunoRepository alunoRepository;
+    private final EmailTransacaoService emailTransacaoService;
 
-    public TransacaoService(TransacaoRepository transacaoRepository, ProfessorRepository professorRepository, AlunoRepository alunoRepository) {
+    public TransacaoService(TransacaoRepository transacaoRepository, ProfessorRepository professorRepository,
+                            AlunoRepository alunoRepository, EmailTransacaoService emailTransacaoService) {
         this.transacaoRepository = transacaoRepository;
         this.professorRepository = professorRepository;
         this.alunoRepository = alunoRepository;
+        this.emailTransacaoService = emailTransacaoService;
     }
 
     public void enviarMoedas(TransacaoRequestDTO dto) {
@@ -48,8 +51,9 @@ public class TransacaoService {
         transacao.setMotivo(dto.motivo());
         
         transacaoRepository.save(transacao);
-        
-        // TODO: Enviar email ao aluno
+
+        emailTransacaoService.enviarConfirmacaoAoProfessor(professor, aluno, transacao);
+        emailTransacaoService.notificarAluno(professor, aluno, transacao);
     }
 
     @Transactional(readOnly = true)
