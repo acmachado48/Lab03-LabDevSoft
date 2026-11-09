@@ -32,7 +32,12 @@ public class AuthService {
         return switch (usuario) {
             case Aluno a -> new LoginResponseDTO(a.getId(), a.getNome(), "ALUNO");
             case Professor p -> new LoginResponseDTO(p.getId(), p.getNome(), "PROFESSOR");
-            case EmpresaParceira e -> new LoginResponseDTO(e.getId(), e.getNome(), "EMPRESA");
+            case EmpresaParceira e -> {
+                if ("admin".equals(e.getLogin())) {
+                    yield new LoginResponseDTO(e.getId(), e.getNome(), "ADMIN");
+                }
+                yield new LoginResponseDTO(e.getId(), e.getNome(), "EMPRESA");
+            }
             default -> new LoginResponseDTO(usuario.getId(), usuario.getLogin(), "USUARIO");
         };
     }

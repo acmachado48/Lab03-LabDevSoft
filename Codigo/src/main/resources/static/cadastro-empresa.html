@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Empresa Parceira</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/cadastro-aluno.css"> <!-- Reutilizamos o mesmo estilo -->
+</head>
+<body>
+    <div class="auth-container">
+        <div id="toast" class="toast hidden"></div>
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2>Cadastro de Empresa Parceira</h2>
+                <p>Crie uma conta para oferecer vantagens e produtos aos alunos</p>
+            </div>
+            
+            <form id="form-empresa">
+                <div class="form-grid">
+                    <div class="form-group span-2">
+                        <label>Razão Social (Nome da Empresa)</label>
+                        <input type="text" id="emp-nome" required>
+                        <span class="error-msg" id="erro-nome"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>CNPJ (Apenas números)</label>
+                        <input type="text" id="emp-cnpj" maxlength="14" required>
+                        <span class="error-msg" id="erro-cnpj"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone</label>
+                        <input type="text" id="emp-telefone" required>
+                        <span class="error-msg" id="erro-telefone"></span>
+                    </div>
+                    <div class="form-group span-2">
+                        <label>E-mail Corporativo</label>
+                        <input type="email" id="emp-email" required>
+                        <span class="error-msg" id="erro-email"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Login de Acesso</label>
+                        <input type="text" id="emp-login" required>
+                        <span class="error-msg" id="erro-login"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Senha</label>
+                        <input type="password" id="emp-senha" required minlength="6">
+                        <span class="error-msg" id="erro-senha"></span>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-block">Cadastrar Empresa</button>
+                    <a href="index.html" class="link-voltar">Já possui conta? Faça login</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="js/cadastro-empresa.js"></script>
+</body>
+</html>
