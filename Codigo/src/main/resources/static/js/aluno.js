@@ -2,7 +2,7 @@ const API_URL = 'http://localhost:8080/api';
 
 // Usuário guardado pela tela inicial (index.html) após o login
 const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-if (!usuarioLogado || usuarioLogado.tipo !== 'ALUNO') {
+if (!usuarioLogado || !usuarioLogado.token || usuarioLogado.tipo !== 'ALUNO') {
     window.location.href = 'index.html';
 }
 const ALUNO_LOGADO_ID = usuarioLogado?.id;
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. Carrega Perfil e Saldo do Aluno
 async function carregarDadosAluno() {
     try {
-        const res = await fetch(`${API_URL}/alunos/${ALUNO_LOGADO_ID}`);
+        const res = await apiFetch(`${API_URL}/alunos/${ALUNO_LOGADO_ID}`);
         if (res.ok) {
             const aluno = await res.json();
             document.getElementById('aluno-nome').innerText = aluno.nome;
@@ -40,7 +40,7 @@ async function carregarDadosAluno() {
 async function carregarVantagens() {
     const grid = document.getElementById('grid-vantagens');
     try {
-        const res = await fetch(`${API_URL}/vantagens`);
+        const res = await apiFetch(`${API_URL}/vantagens`);
         if (res.ok) {
             vantagensGlobais = await res.json();
 
@@ -92,7 +92,7 @@ window.resgatarVantagem = async function(id) {
     if (!confirm(`Confirma o resgate de "${vantagem.descricao}" por ${vantagem.custoEmMoedas} moedas?`)) return;
 
     try {
-        const res = await fetch(`${API_URL}/resgates`, {
+        const res = await apiFetch(`${API_URL}/resgates`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -123,8 +123,8 @@ async function carregarExtratoAluno() {
     try {
         // Busca as moedas recebidas dos professores e as vantagens resgatadas
         const [resTransacoes, resResgates] = await Promise.all([
-            fetch(`${API_URL}/transacoes/aluno/${ALUNO_LOGADO_ID}`),
-            fetch(`${API_URL}/resgates/aluno/${ALUNO_LOGADO_ID}`)
+            apiFetch(`${API_URL}/transacoes/aluno/${ALUNO_LOGADO_ID}`),
+            apiFetch(`${API_URL}/resgates/aluno/${ALUNO_LOGADO_ID}`)
         ]);
         if (!resTransacoes.ok || !resResgates.ok) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger);">Erro ao carregar o extrato.</td></tr>';

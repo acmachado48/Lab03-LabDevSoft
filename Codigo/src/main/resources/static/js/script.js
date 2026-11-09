@@ -3,7 +3,7 @@ const API_URL = 'http://localhost:8080/api';
 
 // --- VALIDAÇÃO DE ACESSO ---
 const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-if (!usuarioLogado || usuarioLogado.tipo !== 'EMPRESA') {
+if (!usuarioLogado || !usuarioLogado.token || usuarioLogado.tipo !== 'EMPRESA') {
     // Se não estiver logado ou não for uma empresa/admin, devolve pro login
     window.location.href = 'index.html';
 }
@@ -118,7 +118,7 @@ function processarErros(responseStatus, data) {
 // --- CRUD EMPRESAS ---
 async function carregarEmpresas() {
     try {
-        const res = await fetch(`${API_URL}/empresas`);
+        const res = await apiFetch(`${API_URL}/empresas`);
         empresasGlobais = await res.json();
         const tbody = document.getElementById('tbody-empresas');
         tbody.innerHTML = empresasGlobais.map(emp => `
@@ -155,7 +155,7 @@ document.getElementById('form-empresa').addEventListener('submit', async (e) => 
         senha: document.getElementById('empresa-senha').value
     };
 
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -173,7 +173,7 @@ document.getElementById('form-empresa').addEventListener('submit', async (e) => 
 
 async function deletarEmpresa(id) {
     if(!confirm('Tem certeza que deseja excluir esta empresa? Todas as vantagens dela serão perdidas.')) return;
-    const res = await fetch(`${API_URL}/empresas/${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`${API_URL}/empresas/${id}`, { method: 'DELETE' });
     if (res.ok) {
         showToast('Empresa excluída com sucesso');
         carregarEmpresas();
@@ -187,7 +187,7 @@ async function deletarEmpresa(id) {
 // --- CRUD VANTAGENS ---
 async function carregarVantagens() {
     try {
-        const res = await fetch(`${API_URL}/vantagens`);
+        const res = await apiFetch(`${API_URL}/vantagens`);
         vantagensGlobais = await res.json();
         const tbody = document.getElementById('tbody-vantagens');
         tbody.innerHTML = vantagensGlobais.map(v => `
@@ -227,7 +227,7 @@ document.getElementById('form-vantagem').addEventListener('submit', async (e) =>
         foto: document.getElementById('vantagem-foto').value
     };
 
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -245,7 +245,7 @@ document.getElementById('form-vantagem').addEventListener('submit', async (e) =>
 
 async function deletarVantagem(id) {
     if(!confirm('Tem certeza que deseja excluir esta vantagem?')) return;
-    const res = await fetch(`${API_URL}/vantagens/${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`${API_URL}/vantagens/${id}`, { method: 'DELETE' });
     if (res.ok) {
         showToast('Vantagem excluída com sucesso');
         carregarVantagens();

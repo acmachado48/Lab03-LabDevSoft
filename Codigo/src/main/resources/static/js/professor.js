@@ -2,7 +2,7 @@ const API_URL = 'http://localhost:8080/api';
 
 // Usuário guardado pela tela inicial (index.html) após o login
 const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-if (!usuarioLogado || usuarioLogado.tipo !== 'PROFESSOR') {
+if (!usuarioLogado || !usuarioLogado.token || usuarioLogado.tipo !== 'PROFESSOR') {
     window.location.href = 'index.html';
 }
 const PROFESSOR_LOGADO_ID = usuarioLogado?.id;
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function carregarDadosProfessor() {
     try {
         // Nota: O back-end precisará ter este endpoint (GET /api/professores/{id})
-        const res = await fetch(`${API_URL}/professores/${PROFESSOR_LOGADO_ID}`);
+        const res = await apiFetch(`${API_URL}/professores/${PROFESSOR_LOGADO_ID}`);
         if (res.ok) {
             const professor = await res.json();
             document.getElementById('nome-prof').innerText = professor.nome;
@@ -35,7 +35,7 @@ async function carregarAlunos() {
     const select = document.getElementById('select-aluno');
     try {
         // Nota: O back-end precisará ter este endpoint (GET /api/alunos)
-        const res = await fetch(`${API_URL}/alunos`);
+        const res = await apiFetch(`${API_URL}/alunos`);
         if (res.ok) {
             const alunos = await res.json();
             select.innerHTML = '<option value="">Selecione um aluno...</option>';
@@ -56,7 +56,7 @@ async function carregarExtrato() {
     const tbody = document.getElementById('tbody-extrato');
     try {
         // Nota: O back-end precisará ter este endpoint (GET /api/transacoes/professor/{id})
-        const res = await fetch(`${API_URL}/transacoes/professor/${PROFESSOR_LOGADO_ID}`);
+        const res = await apiFetch(`${API_URL}/transacoes/professor/${PROFESSOR_LOGADO_ID}`);
         if (res.ok) {
             const transacoes = await res.json();
             
@@ -106,7 +106,7 @@ document.getElementById('form-doacao').addEventListener('submit', async (e) => {
     };
 
     try {
-        const res = await fetch(`${API_URL}/transacoes`, {
+        const res = await apiFetch(`${API_URL}/transacoes`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
