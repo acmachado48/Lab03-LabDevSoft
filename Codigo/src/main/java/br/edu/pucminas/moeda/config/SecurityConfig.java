@@ -31,7 +31,7 @@ import java.util.List;
 /**
  * Autenticacao stateless por JWT: o login devolve um token assinado (HS256) e as demais
  * requisicoes da API precisam enviar "Authorization: Bearer <token>".
- * O papel do usuario (ALUNO, PROFESSOR, EMPRESA) vai na claim "papel" e vira ROLE_<papel>.
+ * O papel do usuario (ALUNO, PROFESSOR, EMPRESA, ADMIN) vai na claim "papel" e vira ROLE_<papel>.
  */
 @Configuration
 @EnableMethodSecurity
@@ -57,18 +57,19 @@ public class SecurityConfig {
                 // Paginas e arquivos estaticos (os dados que elas consomem continuam protegidos)
                 .requestMatchers("/", "/*.html", "/css/**", "/js/**", "/favicon.ico", "/error").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
-                // Endpoints publicos: login e cadastro de aluno
+                // Endpoints publicos: login e cadastros de aluno e de empresa
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/alunos").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/empresas").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/instituicoes").permitAll()
                 // Regras por papel
                 .requestMatchers(HttpMethod.GET, "/api/alunos").hasRole("PROFESSOR")
                 .requestMatchers("/api/professores/**").hasRole("PROFESSOR")
                 .requestMatchers(HttpMethod.POST, "/api/transacoes").hasRole("PROFESSOR")
                 .requestMatchers("/api/resgates/**").hasRole("ALUNO")
-                .requestMatchers("/api/empresas/**").hasRole("EMPRESA")
+                .requestMatchers("/api/empresas/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/vantagens").authenticated()
-                .requestMatchers("/api/vantagens/**").hasRole("EMPRESA")
+                .requestMatchers("/api/vantagens/**").hasAnyRole("EMPRESA", "ADMIN")
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));

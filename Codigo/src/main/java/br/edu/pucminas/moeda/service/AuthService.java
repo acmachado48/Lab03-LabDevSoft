@@ -37,7 +37,8 @@ public class AuthService {
         switch (usuario) {
             case Aluno a -> { nome = a.getNome(); tipo = "ALUNO"; }
             case Professor p -> { nome = p.getNome(); tipo = "PROFESSOR"; }
-            case EmpresaParceira e -> { nome = e.getNome(); tipo = "EMPRESA"; }
+            // A empresa de login "admin" administra o sistema (empresas e todas as vantagens)
+            case EmpresaParceira e -> { nome = e.getNome(); tipo = "admin".equals(e.getLogin()) ? "ADMIN" : "EMPRESA"; }
             default -> { nome = usuario.getLogin(); tipo = "USUARIO"; }
         }
 

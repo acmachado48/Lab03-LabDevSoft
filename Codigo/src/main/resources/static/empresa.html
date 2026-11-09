@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel da Empresa Parceira - Sistema de Mérito</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container" style="padding: 40px; max-width: 1200px; margin: 0 auto; display: block;">
+        <div id="toast" class="toast hidden"></div>
+        
+        <header class="section-header" style="background: var(--primary); color: white; padding: 24px 32px; border-radius: 12px; margin-bottom: 30px;">
+            <div>
+                <h2>Painel da Empresa: <span id="empresa-nome">Carregando...</span></h2>
+                <p style="opacity: 0.9; font-size: 14px; margin-top: 4px;">Gerencie as vantagens e produtos oferecidos aos alunos.</p>
+            </div>
+            <button class="btn btn-secondary" onclick="sair()" style="background: rgba(255,255,255,0.2); color: white; border: none;">Sair</button>
+        </header>
+
+        <div class="section-header">
+            <h1>Minhas Vantagens Cadastradas</h1>
+            <button class="btn btn-primary" onclick="abrirModalVantagem()">+ Nova Vantagem</button>
+        </div>
+
+        <div class="card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Foto / Descrição</th>
+                        <th>Custo (Moedas)</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-vantagens-empresa">
+                    <tr><td colspan="4" style="text-align: center;">Carregando vantagens...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal: Vantagem -->
+    <div id="modal-vantagem" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-vantagem-titulo">Cadastrar Vantagem</h2>
+                <button class="close-btn" onclick="fecharModal('modal-vantagem')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-vantagem">
+                    <input type="hidden" id="vantagem-id">
+                    
+                    <div class="form-group">
+                        <label>Descrição do Produto/Vantagem</label>
+                        <input type="text" id="vantagem-descricao" required>
+                        <span class="error-msg" id="erro-descricao"></span>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Custo em Moedas</label>
+                            <input type="number" id="vantagem-custo" min="1" required>
+                            <span class="error-msg" id="erro-custoEmMoedas"></span>
+                        </div>
+                        <div class="form-group">
+                            <label>URL da Foto</label>
+                            <input type="url" id="vantagem-foto" placeholder="https://..." required>
+                            <span class="error-msg" id="erro-foto"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal('modal-vantagem')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/empresa.js"></script>
+</body>
+</html>

@@ -3,8 +3,7 @@ const API_URL = 'http://localhost:8080/api';
 
 // --- VALIDAÇÃO DE ACESSO ---
 const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-if (!usuarioLogado || !usuarioLogado.token || usuarioLogado.tipo !== 'EMPRESA') {
-    // Se não estiver logado ou não for uma empresa/admin, devolve pro login
+if (!usuarioLogado || !usuarioLogado.token || usuarioLogado.tipo !== 'ADMIN') {
     window.location.href = 'index.html';
 }
 
