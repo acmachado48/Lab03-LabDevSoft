@@ -5,6 +5,7 @@ import br.edu.pucminas.moeda.dto.ResgateResponseDTO;
 import br.edu.pucminas.moeda.service.ResgateService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -20,11 +21,13 @@ public class ResgateController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("@acesso.ehOProprio(#dto.alunoId(), authentication)")
     public ResgateResponseDTO resgatar(@RequestBody @Valid ResgateRequestDTO dto) {
         return service.resgatar(dto);
     }
 
     @GetMapping("/aluno/{alunoId}")
+    @PreAuthorize("@acesso.ehOProprio(#alunoId, authentication)")
     public List<ResgateResponseDTO> listarPorAluno(@PathVariable Long alunoId) {
         return service.listarPorAluno(alunoId);
     }

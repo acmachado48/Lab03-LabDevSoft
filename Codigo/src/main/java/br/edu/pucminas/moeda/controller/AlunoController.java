@@ -5,6 +5,7 @@ import br.edu.pucminas.moeda.dto.AlunoResponseDTO;
 import br.edu.pucminas.moeda.service.AlunoService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.List;
@@ -25,6 +26,7 @@ public class AlunoController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ALUNO') and @acesso.ehOProprio(#id, authentication)")
     public AlunoResponseDTO buscarPorId(@PathVariable Long id) {
         return service.buscarPorId(id);
     }

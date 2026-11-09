@@ -3,6 +3,7 @@ package br.edu.pucminas.moeda.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -35,6 +36,15 @@ public class GlobalExceptionHandler {
         ErrorResponse body = ErrorResponse.of(
                 HttpStatus.UNAUTHORIZED.value(), "Nao autorizado", ex.getMessage(), request.getRequestURI());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+    /** Usuario autenticado tentando acessar recurso de outro usuario ou de outro papel. */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAcessoNegado(AccessDeniedException ex, HttpServletRequest request) {
+        ErrorResponse body = ErrorResponse.of(
+                HttpStatus.FORBIDDEN.value(), "Acesso negado",
+                "Voce nao tem permissao para acessar este recurso", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

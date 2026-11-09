@@ -18,10 +18,13 @@ public class AuthService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TokenService tokenService;
 
-    public AuthService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
+                       TokenService tokenService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.tokenService = tokenService;
     }
 
     public LoginResponseDTO autenticar(LoginRequestDTO dto) {
@@ -29,11 +32,16 @@ public class AuthService {
                 .filter(u -> passwordEncoder.matches(dto.senha(), u.getSenha()))
                 .orElseThrow(() -> new CredenciaisInvalidasException("Login ou senha incorretos"));
 
-        return switch (usuario) {
-            case Aluno a -> new LoginResponseDTO(a.getId(), a.getNome(), "ALUNO");
-            case Professor p -> new LoginResponseDTO(p.getId(), p.getNome(), "PROFESSOR");
-            case EmpresaParceira e -> new LoginResponseDTO(e.getId(), e.getNome(), "EMPRESA");
-            default -> new LoginResponseDTO(usuario.getId(), usuario.getLogin(), "USUARIO");
-        };
+        String nome;
+        String tipo;
+        switch (usuario) {
+            case Aluno a -> { nome = a.getNome(); tipo = "ALUNO"; }
+            case Professor p -> { nome = p.getNome(); tipo = "PROFESSOR"; }
+            case EmpresaParceira e -> { nome = e.getNome(); tipo = "EMPRESA"; }
+            default -> { nome = usuario.getLogin(); tipo = "USUARIO"; }
+        }
+
+        String token = tokenService.gerarToken(usuario.getId(), nome, tipo);
+        return new LoginResponseDTO(usuario.getId(), nome, tipo, token);
     }
 }
