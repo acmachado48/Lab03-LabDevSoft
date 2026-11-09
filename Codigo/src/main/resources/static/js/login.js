@@ -4,7 +4,8 @@ const API_URL = 'http://localhost:8080/api';
 const PAINEIS = {
     ALUNO: 'aluno.html',
     PROFESSOR: 'professor.html',
-    EMPRESA: 'admin.html'
+    ADMIN: 'admin.html',
+    EMPRESA: 'empresa.html'
 };
 
 document.getElementById('form-login').addEventListener('submit', async (e) => {
