@@ -45,3 +45,14 @@ INSERT INTO aluno (id, nome, cpf, rg, endereco, curso, saldo_moedas, instituicao
     FROM usuario u, instituicao i
     WHERE u.login = 'joao.aluno' AND i.nome = 'PUC Minas - Coração Eucarístico'
       AND NOT EXISTS (SELECT 1 FROM aluno a WHERE a.id = u.id);
+
+-- Administrador / Empresa Principal de Teste
+INSERT INTO usuario (email, login, senha)
+    SELECT 'admin@sistema.com', 'admin', '$2a$10$y.6gTzC.D/ExCSPaTcco/.6FjSU1EsEXO46wYGYPmnrcTCXGowr56'
+    WHERE NOT EXISTS (SELECT 1 FROM usuario WHERE login = 'admin');
+
+INSERT INTO empresa_parceira (id, nome, cnpj, telefone)
+    SELECT u.id, 'Administração Central', '00000000000000', '00000000000'
+    FROM usuario u
+    WHERE u.login = 'admin'
+      AND NOT EXISTS (SELECT 1 FROM empresa_parceira e WHERE e.id = u.id);
