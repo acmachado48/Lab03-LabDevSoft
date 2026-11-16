@@ -1,0 +1,34 @@
+@startuml Sequencia_01_Login
+title HU01/HU02 - Login e logout
+
+skinparam shadowing false
+autonumber
+
+actor "Usuário\n(aluno, professor ou empresa)" as U
+participant "Front-end" as FE
+participant "Autenticação\nController" as C
+participant "Autenticação\nService" as S
+database "Banco de dados" as DB
+
+U -> FE : informa login e senha
+FE -> C : POST /api/auth/login
+C -> S : autenticar(login, senha)
+S -> DB : busca usuário pelo login
+DB --> S : usuário (com hash da senha)
+S -> S : confere a senha (BCrypt)
+
+alt credenciais inválidas
+  S --> C : falha de autenticação
+  C --> FE : 401 "Login ou senha inválidos"
+  FE --> U : exibe o erro (sem indicar qual campo)
+else credenciais válidas
+  S --> C : sessão/token + perfil
+  C --> FE : 200 + perfil
+  FE --> U : abre a área do perfil\n(aluno, professor ou empresa)
+end
+
+U -> FE : clica em "Sair"
+FE -> C : POST /api/auth/logout
+C --> FE : 204
+FE --> U : volta para a tela de login
+@enduml
