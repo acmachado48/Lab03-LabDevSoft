@@ -1,0 +1,681 @@
+@startuml Sequencia_00_Completo
+title Sistema de Moeda Estudantil - Diagrama de sequência completo\n(fluxos implementados: front-end -> segurança -> controller -> service -> repository -> banco)
+
+skinparam shadowing false
+skinparam sequenceMessageAlign left
+skinparam maxMessageSize 260
+skinparam responseMessageBelowArrow true
+skinparam BoxPadding 6
+autonumber "<b>[000]"
+
+actor "Aluno" as ALU
+actor "Professor" as PRO
+actor "Empresa\nparceira" as EMP
+actor "Administrador\n(empresa login 'admin')" as ADM
+
+box "Front-end (HTML + JS)" #F2F7FF
+  participant "Páginas\n(login.js, aluno.js,\nprofessor.js, empresa.js,\nscript.js, auth.js)" as FE
+end box
+
+box "Spring Security" #FFF6E5
+  participant "SecurityFilterChain\n(JWT / regras por papel)" as SEC
+  participant "AcessoUsuario\n(@PreAuthorize)" as AC
+end box
+
+box "Controllers" #EEF9EE
+  participant "AuthController" as AuthC
+  participant "InstituicaoController" as InstC
+  participant "AlunoController" as AlunoC
+  participant "ProfessorController" as ProfC
+  participant "EmpresaParceiraController" as EmpC
+  participant "VantagemController" as VantC
+  participant "TransacaoController" as TransC
+  participant "ResgateController" as ResgC
+  participant "GlobalExceptionHandler" as GEH
+end box
+
+box "Services" #F5EEFB
+  participant "AuthService" as AuthS
+  participant "TokenService" as TokS
+  participant "InstituicaoService" as InstS
+  participant "AlunoService" as AlunoS
+  participant "ProfessorService" as ProfS
+  participant "EmpresaParceiraService" as EmpS
+  participant "VantagemService" as VantS
+  participant "TransacaoService" as TransS
+  participant "ResgateService" as ResgS
+  participant "EmailTransacaoService" as MailS
+end box
+
+box "Repositories (Spring Data JPA)" #FDEEEE
+  participant "UsuarioRepository" as UsuR
+  participant "InstituicaoRepository" as InstR
+  participant "AlunoRepository" as AlunoR
+  participant "ProfessorRepository" as ProfR
+  participant "EmpresaParceiraRepository" as EmpR
+  participant "VantagemRepository" as VantR
+  participant "TransacaoRepository" as TransR
+  participant "ResgateRepository" as ResgR
+end box
+
+database "Banco H2\n(moeda)" as DB
+participant "Servidor SMTP\n(JavaMailSender)" as SMTP
+
+note over DB
+  Na inicialização o data.sql pré-cadastra
+  instituições, professores (saldo 1.000)
+  e o usuário administrador. Não há
+  endpoint para esses cadastros.
+end note
+
+' ==========================================================================
+== HU01 - Login ==
+' ==========================================================================
+ALU -> FE : informa login (ou email) e senha
+note left of ALU : vale para aluno,\nprofessor, empresa\ne administrador
+FE -> AuthC : POST /api/auth/login\n{login, senha}  (rota pública)
+AuthC -> AuthC : @Valid LoginRequestDTO
+
+alt campos em branco
+  AuthC -> GEH : MethodArgumentNotValidException
+  GEH --> FE : 400 Bad Request + ErrorResponse(fieldErrors)
+  FE --> ALU : mensagem em cada campo
+else campos preenchidos
+  AuthC -> AuthS : autenticar(dto)
+  AuthS -> UsuR : findByLoginOrEmail(login, login)
+  UsuR -> DB : SELECT usuario LEFT JOIN aluno/professor/empresa_parceira\nWHERE login = ? OR email = ?
+  DB --> UsuR : registro ou vazio
+  UsuR --> AuthS : Optional<Usuario>
+  AuthS -> AuthS : passwordEncoder.matches(senha, hash) (BCrypt)
+
+  alt usuário não encontrado ou senha incorreta
+    AuthS --> AuthC : throw CredenciaisInvalidasException
+    AuthC -> GEH : propaga exceção
+    GEH --> FE : 401 Unauthorized + ErrorResponse\n"Login ou senha incorretos"
+    FE --> ALU : exibe o erro (sem indicar qual campo)
+  else credenciais válidas
+    AuthS -> AuthS : define nome e tipo pelo subtipo\n(ALUNO, PROFESSOR, EMPRESA ou ADMIN)
+    AuthS -> TokS : gerarToken(id, nome, tipo)
+    TokS -> TokS : monta claims (sub = id, nome, papel, exp)\ne assina com HS256
+    TokS --> AuthS : token JWT (String)
+    AuthS --> AuthC : LoginResponseDTO(id, nome, tipo, token)
+    AuthC --> FE : 200 OK + LoginResponseDTO
+    FE -> FE : localStorage.setItem("usuarioLogado", dados)
+    FE --> ALU : abre o painel do tipo\n(aluno.html, professor.html, empresa.html ou admin.html)
+  end
+end
+
+' ==========================================================================
+== HU02 - Logout ==
+' ==========================================================================
+ALU -> FE : clica em "Sair"
+FE -> FE : localStorage.removeItem("usuarioLogado")
+FE --> ALU : volta para index.html
+note right of FE : JWT é stateless: o logout não chama\no back-end, apenas descarta o token.
+
+' ==========================================================================
+== Regra comum a toda requisição protegida (seções seguintes) ==
+' ==========================================================================
+FE -> SEC : requisição com "Authorization: Bearer <token>" (apiFetch)
+SEC -> SEC : JwtDecoder valida assinatura HS256 e expiração;\nclaim "papel" vira ROLE_<papel>, "sub" vira authentication.name
+
+alt token ausente, inválido ou expirado
+  SEC --> FE : 401 Unauthorized
+  FE -> FE : apiFetch remove "usuarioLogado"
+  FE --> ALU : redireciona para index.html (login)
+else papel não autorizado para a rota
+  SEC --> FE : 403 Forbidden
+else autorizado
+  SEC -> AC : @PreAuthorize do método (quando houver)\nex.: ehOProprio(id, authentication)
+  AC --> SEC : true / false
+  alt false (id de outro usuário)
+    SEC -> GEH : AccessDeniedException
+    GEH --> FE : 403 Forbidden + ErrorResponse "Acesso negado"
+  else true
+    SEC -> SEC : encaminha ao controller da rota
+  end
+end
+
+' ==========================================================================
+== HU03 - Cadastro de aluno (rotas públicas) ==
+' ==========================================================================
+ALU -> FE : abre cadastro-aluno.html
+FE -> InstC : GET /api/instituicoes
+InstC -> InstS : listarTodas()
+InstS -> InstR : findAll()
+InstR -> DB : SELECT * FROM instituicao
+DB --> InstR : linhas
+InstR --> InstS : List<Instituicao>
+InstS --> InstC : List<InstituicaoResponseDTO>
+InstC --> FE : 200 OK + lista de instituições
+FE --> ALU : preenche o select de instituições
+
+ALU -> FE : informa nome, email, CPF, RG, endereço,\ninstituição, curso, login e senha
+FE -> AlunoC : POST /api/alunos (AlunoRequestDTO)
+AlunoC -> AlunoC : @Valid AlunoRequestDTO
+
+alt dados inválidos
+  AlunoC -> GEH : MethodArgumentNotValidException
+  GEH --> FE : 400 Bad Request + fieldErrors
+  FE --> ALU : erro em cada campo
+else dados válidos
+  AlunoC -> AlunoS : cadastrar(dto)
+  AlunoS -> AlunoR : existsByCpf(cpf)
+  AlunoR -> DB : SELECT 1 FROM aluno WHERE cpf = ?
+  DB --> AlunoR : resultado
+  AlunoR --> AlunoS : boolean
+  AlunoS -> UsuR : existsByEmail(email)
+  UsuR -> DB : SELECT 1 FROM usuario WHERE email = ?
+  DB --> UsuR : resultado
+  UsuR --> AlunoS : boolean
+  AlunoS -> UsuR : existsByLogin(login)
+  UsuR -> DB : SELECT 1 FROM usuario WHERE login = ?
+  DB --> UsuR : resultado
+  UsuR --> AlunoS : boolean
+
+  alt CPF, email ou login já cadastrado
+    AlunoS --> AlunoC : throw BusinessException
+    AlunoC -> GEH : propaga exceção
+    GEH --> FE : 409 Conflict + mensagem
+    FE --> ALU : exibe a mensagem
+  else dados únicos
+    AlunoS -> InstR : findById(instituicaoId)
+    InstR -> DB : SELECT * FROM instituicao WHERE id = ?
+    DB --> InstR : registro ou vazio
+    InstR --> AlunoS : Optional<Instituicao>
+    alt instituição inexistente
+      AlunoS --> AlunoC : throw ResourceNotFoundException
+      AlunoC -> GEH : propaga exceção
+      GEH --> FE : 404 Not Found + mensagem
+    else instituição encontrada
+      AlunoS -> AlunoS : new Aluno(...), senha = BCrypt(senha),\nsaldoMoedas = 0
+      AlunoS -> AlunoR : save(aluno)
+      AlunoR -> DB : INSERT INTO usuario (...)\nINSERT INTO aluno (...)
+      DB --> AlunoR : id gerado
+      AlunoR --> AlunoS : Aluno (com id)
+      AlunoS --> AlunoC : AlunoResponseDTO
+      AlunoC --> FE : 201 Created + Location /api/alunos/{id} + AlunoResponseDTO
+      FE --> ALU : "Cadastro realizado" e vai para o login
+    end
+  end
+end
+
+' ==========================================================================
+== HU04 - Cadastro de empresa parceira (rota pública) ==
+' ==========================================================================
+EMP -> FE : informa nome, CNPJ, telefone, email, login e senha
+FE -> EmpC : POST /api/empresas (EmpresaParceiraRequestDTO)
+EmpC -> EmpC : @Valid
+
+alt dados inválidos
+  EmpC -> GEH : MethodArgumentNotValidException
+  GEH --> FE : 400 Bad Request + fieldErrors
+else dados válidos
+  EmpC -> EmpS : criar(dto)
+  EmpS -> EmpS : normalizarCnpj (só dígitos)
+  EmpS -> EmpR : existsByCnpj(cnpj)
+  EmpR -> DB : SELECT 1 FROM empresa_parceira WHERE cnpj = ?
+  DB --> EmpR : resultado
+  EmpR --> EmpS : boolean
+  EmpS -> UsuR : existsByEmail(email) / existsByLogin(login)
+  UsuR -> DB : SELECT 1 FROM usuario WHERE email = ? / login = ?
+  DB --> UsuR : resultados
+  UsuR --> EmpS : boolean, boolean
+  alt CNPJ, email ou login já cadastrado
+    EmpS --> EmpC : throw BusinessException
+    EmpC -> GEH : propaga exceção
+    GEH --> FE : 409 Conflict + mensagem
+  else dados únicos
+    EmpS -> EmpS : senha = BCrypt(senha)
+    EmpS -> EmpR : save(empresa)
+    EmpR -> DB : INSERT INTO usuario (...)\nINSERT INTO empresa_parceira (...)
+    DB --> EmpR : id gerado
+    EmpR --> EmpS : EmpresaParceira (com id)
+    EmpS --> EmpC : EmpresaParceiraResponseDTO
+    EmpC --> FE : 201 Created + Location + EmpresaParceiraResponseDTO
+    FE --> EMP : "Empresa cadastrada"
+  end
+end
+
+' ==========================================================================
+== HU12/HU13 - Empresa gerencia as próprias vantagens (ROLE_EMPRESA) ==
+' ==========================================================================
+EMP -> FE : abre empresa.html
+FE -> SEC : GET /api/vantagens/empresa/{empresaId} + Bearer
+SEC -> AC : ehAdminOuOProprio(empresaId, auth)
+AC --> SEC : true
+SEC -> VantC : listarPorEmpresa(empresaId)
+VantC -> VantS : listarPorEmpresa(empresaId)
+VantS -> EmpR : existsById(empresaId)
+EmpR -> DB : SELECT 1 FROM empresa_parceira WHERE id = ?
+DB --> EmpR : resultado
+EmpR --> VantS : boolean
+alt empresa inexistente
+  VantS --> VantC : throw ResourceNotFoundException
+  VantC -> GEH : propaga exceção
+  GEH --> FE : 404 Not Found
+else empresa existe
+  VantS -> VantR : findByEmpresaId(empresaId)
+  VantR -> DB : SELECT * FROM vantagem WHERE empresa_id = ?
+  DB --> VantR : linhas
+  VantR --> VantS : List<Vantagem>
+  VantS --> VantC : List<VantagemResponseDTO>
+  VantC --> FE : 200 OK + lista
+  FE --> EMP : exibe as vantagens da empresa
+end
+
+group Cadastrar vantagem
+  EMP -> FE : informa descrição, foto (URL) e custo em moedas
+  FE -> SEC : POST /api/vantagens {descricao, custoEmMoedas, foto, empresaId}
+  SEC -> VantC : criar(dto)
+  VantC -> VantC : @Valid VantagemRequestDTO
+  alt dados inválidos
+    VantC -> GEH : MethodArgumentNotValidException
+    GEH --> FE : 400 Bad Request + fieldErrors
+  else dados válidos
+    VantC -> AC : @PreAuthorize ehAdminOuOProprio(dto.empresaId, auth)
+    AC --> VantC : true (false -> 403 via GlobalExceptionHandler)
+    VantC -> VantS : criar(dto)
+    VantS -> EmpR : findById(empresaId)
+    EmpR -> DB : SELECT * FROM empresa_parceira WHERE id = ?
+    DB --> EmpR : registro
+    EmpR --> VantS : Optional<EmpresaParceira>
+    VantS -> VantS : new Vantagem(descricao, custo, foto, empresa)
+    VantS -> VantR : save(vantagem)
+    VantR -> DB : INSERT INTO vantagem (...)
+    DB --> VantR : id gerado
+    VantR --> VantS : Vantagem (com id)
+    VantS --> VantC : VantagemResponseDTO
+    VantC --> FE : 201 Created + Location + VantagemResponseDTO
+    FE --> EMP : "Vantagem cadastrada"
+  end
+end
+
+group Editar vantagem
+  EMP -> FE : altera descrição, foto ou custo
+  FE -> SEC : PUT /api/vantagens/{id} (VantagemUpdateDTO)
+  SEC -> AC : podeAlterarVantagem(id, auth)
+  AC -> VantR : findById(id)
+  VantR -> DB : SELECT * FROM vantagem WHERE id = ?
+  DB --> VantR : registro ou vazio
+  VantR --> AC : Optional<Vantagem>
+  AC -> AC : vantagem.empresa.id == authentication.name ?\n(inexistente passa para o service responder 404)
+  AC --> SEC : true / false
+  alt vantagem de outra empresa
+    SEC -> GEH : AccessDeniedException
+    GEH --> FE : 403 Forbidden
+  else vantagem própria
+    SEC -> VantC : atualizar(id, dto)
+    VantC -> VantS : atualizar(id, dto)
+    VantS -> VantR : findById(id)
+    VantR -> DB : SELECT * FROM vantagem WHERE id = ?
+    DB --> VantR : registro ou vazio
+    VantR --> VantS : Optional<Vantagem>
+    alt vantagem inexistente
+      VantS --> VantC : throw ResourceNotFoundException
+      VantC -> GEH : propaga exceção
+      GEH --> FE : 404 Not Found
+    else encontrada
+      VantS -> VantS : atualiza descrição, custo e foto
+      VantS -> VantR : save(vantagem)
+      VantR -> DB : UPDATE vantagem SET ... WHERE id = ?
+      DB --> VantR : ok
+      VantR --> VantS : Vantagem
+      VantS --> VantC : VantagemResponseDTO
+      VantC --> FE : 200 OK + VantagemResponseDTO
+      FE --> EMP : lista atualizada
+    end
+  end
+end
+
+group Excluir vantagem
+  EMP -> FE : remove uma vantagem
+  FE -> SEC : DELETE /api/vantagens/{id}
+  SEC -> AC : podeAlterarVantagem(id, auth)
+  AC -> VantR : findById(id)
+  VantR -> DB : SELECT * FROM vantagem WHERE id = ?
+  DB --> VantR : registro
+  VantR --> AC : Optional<Vantagem>
+  AC --> SEC : true
+  SEC -> VantC : excluir(id)
+  VantC -> VantS : excluir(id)
+  VantS -> VantR : existsById(id)
+  VantR -> DB : SELECT 1 FROM vantagem WHERE id = ?
+  DB --> VantR : resultado
+  VantR --> VantS : boolean
+  VantS -> ResgR : existsByVantagemId(id)
+  ResgR -> DB : SELECT 1 FROM resgate WHERE vantagem_id = ?
+  DB --> ResgR : resultado
+  ResgR --> VantS : boolean
+  alt vantagem inexistente
+    VantS --> VantC : throw ResourceNotFoundException
+    VantC -> GEH : propaga exceção
+    GEH --> FE : 404 Not Found
+  else já resgatada por alunos
+    VantS --> VantC : throw BusinessException
+    VantC -> GEH : propaga exceção
+    GEH --> FE : 409 Conflict "já foi resgatada"
+  else pode excluir
+    VantS -> VantR : deleteById(id)
+    VantR -> DB : DELETE FROM vantagem WHERE id = ?
+    DB --> VantR : ok
+    VantR --> VantS : void
+    VantS --> VantC : void
+    VantC --> FE : 204 No Content
+    FE --> EMP : lista atualizada
+  end
+end
+
+' ==========================================================================
+== HU05/HU06 - Administrador gerencia empresas e vantagens (ROLE_ADMIN) ==
+' ==========================================================================
+ADM -> FE : abre admin.html
+FE -> SEC : GET /api/empresas + Bearer
+SEC -> EmpC : listar()
+EmpC -> EmpS : listar()
+EmpS -> EmpR : findAllByOrderByNomeAsc()
+EmpR -> DB : SELECT * FROM empresa_parceira ORDER BY nome
+DB --> EmpR : linhas
+EmpR --> EmpS : List<EmpresaParceira>
+EmpS --> EmpC : List<EmpresaParceiraResponseDTO>
+EmpC --> FE : 200 OK + lista
+FE --> ADM : exibe as empresas
+
+group Editar empresa
+  ADM -> FE : altera dados (senha opcional)
+  FE -> SEC : PUT /api/empresas/{id} (EmpresaParceiraUpdateDTO)
+  SEC -> EmpC : atualizar(id, dto)
+  EmpC -> EmpS : atualizar(id, dto)
+  EmpS -> EmpR : findById(id)
+  EmpR -> DB : SELECT * FROM empresa_parceira WHERE id = ?
+  DB --> EmpR : registro ou vazio
+  EmpR --> EmpS : Optional<EmpresaParceira>
+  EmpS -> EmpR : existsByCnpjAndIdNot(cnpj, id)
+  EmpR -> DB : SELECT 1 ... WHERE cnpj = ? AND id <> ?
+  DB --> EmpR : resultado
+  EmpR --> EmpS : boolean
+  EmpS -> UsuR : existsByEmailAndIdNot / existsByLoginAndIdNot
+  UsuR -> DB : SELECT 1 FROM usuario WHERE (email|login) = ? AND id <> ?
+  DB --> UsuR : resultados
+  UsuR --> EmpS : boolean, boolean
+  alt empresa inexistente
+    EmpS --> EmpC : throw ResourceNotFoundException
+    EmpC -> GEH : propaga exceção
+    GEH --> FE : 404 Not Found
+  else CNPJ, email ou login em uso por outro usuário
+    EmpS --> EmpC : throw BusinessException
+    EmpC -> GEH : propaga exceção
+    GEH --> FE : 409 Conflict
+  else ok
+    EmpS -> EmpS : atualiza campos; se veio senha, BCrypt(senha)
+    EmpS -> EmpR : save(empresa)
+    EmpR -> DB : UPDATE usuario ...; UPDATE empresa_parceira ...
+    DB --> EmpR : ok
+    EmpR --> EmpS : EmpresaParceira
+    EmpS --> EmpC : EmpresaParceiraResponseDTO
+    EmpC --> FE : 200 OK + EmpresaParceiraResponseDTO
+    FE --> ADM : lista atualizada
+  end
+end
+
+group Excluir empresa
+  ADM -> FE : remove uma empresa
+  FE -> SEC : DELETE /api/empresas/{id}
+  SEC -> EmpC : excluir(id)
+  EmpC -> EmpS : excluir(id)
+  EmpS -> EmpR : existsById(id)
+  EmpR -> DB : SELECT 1 FROM empresa_parceira WHERE id = ?
+  DB --> EmpR : resultado
+  EmpR --> EmpS : boolean
+  alt inexistente
+    EmpS --> EmpC : throw ResourceNotFoundException
+    EmpC -> GEH : propaga exceção
+    GEH --> FE : 404 Not Found
+  else existe
+    EmpS -> EmpR : deleteById(id)
+    EmpR -> DB : DELETE FROM empresa_parceira ...; DELETE FROM usuario ...
+    DB --> EmpR : ok
+    EmpR --> EmpS : void
+    EmpS --> EmpC : void
+    EmpC --> FE : 204 No Content
+    FE --> ADM : lista atualizada
+  end
+end
+
+group Vantagens de todas as empresas
+  ADM -> FE : aba "Vantagens"
+  FE -> SEC : GET /api/vantagens
+  SEC -> VantC : listarTodas()
+  VantC -> VantS : listarTodas()
+  VantS -> VantR : findAll()
+  VantR -> DB : SELECT * FROM vantagem
+  DB --> VantR : linhas
+  VantR --> VantS : List<Vantagem>
+  VantS --> VantC : List<VantagemResponseDTO>
+  VantC --> FE : 200 OK + lista
+  FE --> ADM : exibe as vantagens
+  note right of FE : POST/PUT/DELETE seguem o mesmo fluxo da\nseção HU12/HU13; AcessoUsuario libera\nqualquer vantagem para ROLE_ADMIN.
+end
+
+' ==========================================================================
+== HU08/HU09/HU10 - Professor: saldo, envio de moedas e extrato (ROLE_PROFESSOR) ==
+' ==========================================================================
+PRO -> FE : abre professor.html
+FE -> SEC : GET /api/professores/{id} + Bearer
+SEC -> AC : ehOProprio(id, auth)
+AC --> SEC : true
+SEC -> ProfC : buscarPorId(id)
+ProfC -> ProfS : buscarPorId(id)
+ProfS -> ProfR : findById(id)
+ProfR -> DB : SELECT * FROM usuario JOIN professor WHERE id = ?
+DB --> ProfR : registro
+ProfR --> ProfS : Optional<Professor>
+ProfS --> ProfC : ProfessorResponseDTO (inclui saldoMoedas)
+ProfC --> FE : 200 OK + ProfessorResponseDTO
+FE --> PRO : exibe nome e saldo
+
+FE -> SEC : GET /api/alunos
+SEC -> AlunoC : listar()
+AlunoC -> AlunoS : listarTodos()
+AlunoS -> AlunoR : findAllByOrderByNomeAsc()  (@EntityGraph instituicao)
+AlunoR -> DB : SELECT aluno JOIN usuario JOIN instituicao ORDER BY nome
+DB --> AlunoR : linhas
+AlunoR --> AlunoS : List<Aluno>
+AlunoS --> AlunoC : List<AlunoResponseDTO>
+AlunoC --> FE : 200 OK + lista de alunos
+FE --> PRO : preenche o select de alunos
+
+group HU08/HU09 - Enviar moedas
+  PRO -> FE : escolhe o aluno, a quantidade e escreve o motivo
+  FE -> SEC : POST /api/transacoes {professorId, alunoId, valor, motivo}
+  SEC -> TransC : criarTransacao(dto)
+  TransC -> TransC : @Valid (valor > 0, motivo obrigatório)
+  alt dados inválidos
+    TransC -> GEH : MethodArgumentNotValidException
+    GEH --> FE : 400 Bad Request + fieldErrors
+    FE --> PRO : exibe os erros
+  else dados válidos
+    TransC -> AC : @PreAuthorize ehOProprio(dto.professorId, auth)
+    AC --> TransC : true (false -> 403)
+    TransC -> TransS : enviarMoedas(dto)
+    activate TransS
+    note right of TransS : @Transactional: tudo abaixo é\numa única transação no banco
+    TransS -> ProfR : findById(professorId)
+    ProfR -> DB : SELECT ... FROM professor WHERE id = ?
+    DB --> ProfR : registro
+    ProfR --> TransS : Optional<Professor>
+    TransS -> AlunoR : findById(alunoId)
+    AlunoR -> DB : SELECT ... FROM aluno WHERE id = ?
+    DB --> AlunoR : registro ou vazio
+    AlunoR --> TransS : Optional<Aluno>
+
+    alt professor ou aluno inexistente
+      TransS --> TransC : throw ResourceNotFoundException (rollback)
+      TransC -> GEH : propaga exceção
+      GEH --> FE : 404 Not Found
+    else saldo do professor < valor
+      TransS --> TransC : throw BusinessException (rollback)
+      TransC -> GEH : propaga exceção
+      GEH --> FE : 409 Conflict "Saldo insuficiente..."
+      FE --> PRO : exibe o erro; nada é debitado
+    else saldo suficiente
+      TransS -> TransS : professor.saldo -= valor\naluno.saldo += valor\nnew Transacao(professor, aluno, valor, motivo, agora)
+      TransS -> TransR : save(transacao)
+      TransR -> DB : INSERT INTO transacao (...)
+      DB --> TransR : id gerado
+      TransR --> TransS : Transacao
+
+      TransS -> MailS : enviarConfirmacaoAoProfessor(professor, aluno, transacao)
+      MailS -> MailS : Thymeleaf processa\n"email/confirmacao-envio-professor"
+      MailS -> SMTP : send(MimeMessage para professor.email)
+      SMTP --> MailS : enviado
+      SMTP ->> PRO : email "Confirmação de envio de moedas"
+      MailS --> TransS : void
+
+      TransS -> MailS : notificarAluno(professor, aluno, transacao)
+      MailS -> MailS : Thymeleaf processa\n"email/notificacao-recebimento-aluno"
+      MailS -> SMTP : send(MimeMessage para aluno.email)
+      SMTP --> MailS : enviado
+      SMTP ->> ALU : email "Você recebeu moedas de reconhecimento"
+      MailS --> TransS : void
+
+      group commit da transação (flush automático do Hibernate)
+        ProfR -> DB : UPDATE professor SET saldo_moedas = ? WHERE id = ?
+        AlunoR -> DB : UPDATE aluno SET saldo_moedas = ? WHERE id = ?
+        DB --> AlunoR : COMMIT ok
+      end
+      note right of TransS : Os saldos são gravados por dirty checking\n(entidades gerenciadas), sem save() explícito.\nSe o envio de email falhar, a transação\nsofre rollback e a API devolve 500.
+      TransS --> TransC : void
+      deactivate TransS
+      TransC --> FE : 200 OK (sem corpo)
+      FE --> PRO : "Moedas enviadas"; recarrega saldo e extrato
+    end
+  end
+end
+
+group HU10 - Extrato do professor
+  FE -> SEC : GET /api/transacoes/professor/{professorId}
+  SEC -> AC : ehOProprio(professorId, auth)
+  AC --> SEC : true
+  SEC -> TransC : listarPorProfessor(professorId)
+  TransC -> TransS : listarPorProfessor(professorId)
+  TransS -> TransR : findByProfessorIdOrderByDataTransacaoDesc(professorId)
+  TransR -> DB : SELECT * FROM transacao WHERE professor_id = ?\nORDER BY data_transacao DESC
+  DB --> TransR : linhas
+  TransR --> TransS : List<Transacao>
+  TransS --> TransC : List<TransacaoResponseDTO>
+  TransC --> FE : 200 OK + envios (aluno, valor, motivo, data)
+  FE --> PRO : exibe saldo (da chamada anterior) e histórico
+end
+
+' ==========================================================================
+== HU11 - Aluno: saldo e extrato (ROLE_ALUNO) ==
+' ==========================================================================
+ALU -> FE : abre aluno.html
+FE -> SEC : GET /api/alunos/{id} + Bearer
+SEC -> AC : ehOProprio(id, auth)
+AC --> SEC : true
+SEC -> AlunoC : buscarPorId(id)
+AlunoC -> AlunoS : buscarPorId(id)
+AlunoS -> AlunoR : findComInstituicaoById(id)  (@EntityGraph instituicao)
+AlunoR -> DB : SELECT aluno JOIN usuario JOIN instituicao WHERE id = ?
+DB --> AlunoR : registro ou vazio
+AlunoR --> AlunoS : Optional<Aluno>
+alt aluno inexistente
+  AlunoS --> AlunoC : throw ResourceNotFoundException
+  AlunoC -> GEH : propaga exceção
+  GEH --> FE : 404 Not Found
+else encontrado
+  AlunoS --> AlunoC : AlunoResponseDTO (inclui saldoMoedas)
+  AlunoC --> FE : 200 OK + AlunoResponseDTO
+  FE --> ALU : exibe nome e saldo
+end
+
+par extrato: recebimentos
+  FE -> SEC : GET /api/transacoes/aluno/{alunoId}
+  SEC -> TransC : listarPorAluno(alunoId)
+  TransC -> TransS : listarPorAluno(alunoId)
+  TransS -> TransR : findByAlunoIdOrderByDataTransacaoDesc(alunoId)
+  TransR -> DB : SELECT * FROM transacao WHERE aluno_id = ?\nORDER BY data_transacao DESC
+  DB --> TransR : linhas
+  TransR --> TransS : List<Transacao>
+  TransS --> TransC : List<TransacaoResponseDTO>
+  TransC --> FE : 200 OK + recebimentos (professor, valor, motivo, data)
+else extrato: resgates
+  FE -> SEC : GET /api/resgates/aluno/{alunoId}
+  SEC -> ResgC : listarPorAluno(alunoId)
+  ResgC -> ResgS : listarPorAluno(alunoId)
+  ResgS -> ResgR : findByAlunoIdOrderByDataResgateDesc(alunoId)\n(@EntityGraph vantagem, vantagem.empresa)
+  ResgR -> DB : SELECT resgate JOIN vantagem JOIN empresa_parceira\nWHERE aluno_id = ? ORDER BY data_resgate DESC
+  DB --> ResgR : linhas
+  ResgR --> ResgS : List<Resgate>
+  ResgS --> ResgC : List<ResgateResponseDTO>
+  ResgC --> FE : 200 OK + resgates (vantagem, empresa, cupom, valor, data)
+end
+FE -> FE : junta recebimentos e resgates\ne ordena por data (mais recente primeiro)
+FE --> ALU : exibe o extrato
+
+' ==========================================================================
+== HU14 a HU17 - Aluno resgata uma vantagem (ROLE_ALUNO) ==
+' ==========================================================================
+ALU -> FE : abre a aba de vantagens
+FE -> SEC : GET /api/vantagens + Bearer
+SEC -> VantC : listarTodas()
+VantC -> VantS : listarTodas()
+VantS -> VantR : findAll()
+VantR -> DB : SELECT * FROM vantagem
+DB --> VantR : linhas
+VantR --> VantS : List<Vantagem>
+VantS --> VantC : List<VantagemResponseDTO>
+VantC --> FE : 200 OK + vantagens (descrição, foto, custo, empresa)
+FE --> ALU : exibe as vantagens
+
+ALU -> FE : escolhe uma vantagem e clica em "Resgatar"
+FE -> SEC : POST /api/resgates {alunoId, vantagemId}
+SEC -> ResgC : resgatar(dto)
+ResgC -> ResgC : @Valid ResgateRequestDTO
+ResgC -> AC : @PreAuthorize ehOProprio(dto.alunoId, auth)
+AC --> ResgC : true (false -> 403)
+ResgC -> ResgS : resgatar(dto)
+activate ResgS
+note right of ResgS : @Transactional
+ResgS -> AlunoR : findById(alunoId)
+AlunoR -> DB : SELECT ... FROM aluno WHERE id = ?
+DB --> AlunoR : registro
+AlunoR --> ResgS : Optional<Aluno>
+ResgS -> VantR : findById(vantagemId)
+VantR -> DB : SELECT * FROM vantagem WHERE id = ?
+DB --> VantR : registro ou vazio
+VantR --> ResgS : Optional<Vantagem>
+
+alt aluno ou vantagem inexistente
+  ResgS --> ResgC : throw ResourceNotFoundException (rollback)
+  ResgC -> GEH : propaga exceção
+  GEH --> FE : 404 Not Found
+else saldo do aluno < custo da vantagem
+  ResgS --> ResgC : throw BusinessException (rollback)
+  ResgC -> GEH : propaga exceção
+  GEH --> FE : 409 Conflict "Saldo insuficiente..."
+  FE --> ALU : exibe o erro
+else saldo suficiente
+  ResgS -> ResgS : aluno.saldo -= custo\nnew Resgate(aluno, vantagem, valor = custo)\n(codigoCupom e dataResgate gerados na criação)
+  ResgS -> ResgR : save(resgate)
+  ResgR -> DB : INSERT INTO resgate (codigo_cupom, aluno_id, vantagem_id, valor, data_resgate)
+  DB --> ResgR : id gerado
+  ResgR --> ResgS : Resgate
+  group commit da transação (flush automático do Hibernate)
+    AlunoR -> DB : UPDATE aluno SET saldo_moedas = ? WHERE id = ?
+    DB --> AlunoR : COMMIT ok
+  end
+  ResgS --> ResgC : ResgateResponseDTO (inclui codigoCupom)
+  deactivate ResgS
+  ResgC --> FE : 201 Created + ResgateResponseDTO
+  FE --> ALU : "Vantagem resgatada" + código do cupom;\natualiza saldo e extrato
+end
+
+note over ALU, SMTP
+  Ainda não implementado no código (fica fora das setas acima):
+  - HU07 crédito semestral de 1.000 moedas: não há agendador; o saldo inicial vem do data.sql / padrão da entidade Professor.
+  - Emails do resgate (cupom para o aluno e código de conferência para a empresa): TODO em ResgateService.resgatar.
+end note
+@enduml
