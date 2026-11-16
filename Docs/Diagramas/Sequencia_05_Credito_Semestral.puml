@@ -1,0 +1,20 @@
+@startuml Sequencia_05_Credito_Semestral
+title HU07 - Crédito semestral de moedas
+
+skinparam shadowing false
+autonumber
+
+participant "Agendador\n(início do semestre)" as J
+participant "Professor\nService" as S
+database "Banco de dados" as DB
+
+J -> S : creditarSemestre()
+S -> DB : busca todos os professores
+DB --> S : professores
+
+loop para cada professor
+  S -> S : novoSaldo = saldoAtual + 1000\n(saldo é acumulável)
+  S -> DB : UPDATE saldo do professor
+  S -> DB : INSERT transação de crédito semestral
+end
+@enduml
