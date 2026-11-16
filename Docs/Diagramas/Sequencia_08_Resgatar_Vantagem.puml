@@ -1,0 +1,46 @@
+@startuml Sequencia_08_Resgatar_Vantagem
+title HU14 a HU17 - Aluno resgata uma vantagem
+
+skinparam shadowing false
+autonumber
+
+actor "Aluno" as U
+participant "Front-end" as FE
+participant "Resgate\nController" as C
+participant "Resgate\nService" as S
+database "Banco de dados" as DB
+participant "Serviço de\nemail" as M
+actor "Empresa parceira" as E
+
+U -> FE : abre a lista de vantagens
+FE -> C : GET /api/vantagens
+C --> FE : vantagens (descrição, foto, custo)
+FE --> U : exibe as vantagens
+
+U -> FE : escolhe uma vantagem e clica em "Resgatar"
+FE -> C : POST /api/resgates {vantagemId}
+C -> S : resgatar(alunoLogado, vantagemId)
+S -> DB : busca aluno e vantagem
+DB --> S : saldo do aluno, custo da vantagem
+
+alt saldo insuficiente
+  S --> C : BusinessException
+  C --> FE : 409 "Saldo insuficiente"
+  FE --> U : exibe o erro
+else saldo suficiente
+  S -> S : gera código único do cupom
+  S -> DB : BEGIN\nUPDATE aluno (saldo - custo)\nINSERT resgate (aluno, vantagem, código, data)\nCOMMIT
+  par emails com o mesmo código
+    S -> M : enviarCupom(aluno, vantagem, código)
+    M -> U : email com o cupom e o código
+  else
+    S -> M : enviarConferencia(empresa, aluno, vantagem, código)
+    M -> E : email com o mesmo código para conferência
+  end
+  S --> C : resgate registrado
+  C --> FE : 201 + código
+  FE --> U : "Vantagem resgatada. Cupom enviado por email"
+end
+
+note over U, E : Na troca presencial, a empresa confere\no código do aluno com o do email recebido.
+@enduml
