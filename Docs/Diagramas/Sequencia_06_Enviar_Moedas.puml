@@ -1,0 +1,40 @@
+@startuml Sequencia_06_Enviar_Moedas
+title HU08/HU09 - Professor envia moedas a um aluno
+
+skinparam shadowing false
+autonumber
+
+actor "Professor" as U
+participant "Front-end" as FE
+participant "Transação\nController" as C
+participant "Moeda\nService" as S
+database "Banco de dados" as DB
+participant "Serviço de\nemail" as M
+actor "Aluno" as AL
+
+U -> FE : escolhe o aluno, a quantidade\ne escreve o motivo
+FE -> C : POST /api/moedas/enviar
+C -> C : @Valid (motivo obrigatório,\nquantidade > 0)
+
+alt dados inválidos
+  C --> FE : 400 + fieldErrors
+  FE --> U : exibe os erros
+else dados válidos
+  C -> S : enviarMoedas(professorLogado, alunoId, qtd, motivo)
+  S -> DB : busca professor e aluno
+  DB --> S : saldos atuais
+
+  alt saldo do professor insuficiente
+    S --> C : BusinessException
+    C --> FE : 409 "Saldo insuficiente"
+    FE --> U : exibe o erro, nada é debitado
+  else saldo suficiente
+    S -> DB : BEGIN\nUPDATE professor (saldo - qtd)\nUPDATE aluno (saldo + qtd)\nINSERT transação (professor, aluno, qtd, motivo, data)\nCOMMIT
+    S -> M : notificarRecebimento(aluno, professor, qtd, motivo)
+    M -> AL : email "Você recebeu N moedas"
+    S --> C : transação registrada
+    C --> FE : 201 Created
+    FE --> U : "Moedas enviadas"
+  end
+end
+@enduml

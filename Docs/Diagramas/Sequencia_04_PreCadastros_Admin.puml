@@ -1,0 +1,31 @@
+@startuml Sequencia_04_PreCadastros_Admin
+title HU05/HU06 - Pré-cadastro de instituições e professores (administrador)
+
+skinparam shadowing false
+autonumber
+
+actor "Administrador" as A
+participant "Front-end" as FE
+participant "Admin\nController" as C
+participant "Admin\nService" as S
+database "Banco de dados" as DB
+
+A -> FE : cadastra instituição parceira
+FE -> C : POST /api/instituicoes
+C -> S : criarInstituicao(dto)
+S -> DB : INSERT instituição
+C --> FE : 201 Created
+
+A -> FE : envia a lista de professores da instituição\n(nome, CPF, departamento, instituição)
+FE -> C : POST /api/professores/importacao
+C -> S : importarProfessores(instituicaoId, lista)
+
+loop para cada professor da lista
+  S -> DB : valida CPF e vínculo com a instituição
+  S -> S : gera login e senha inicial (hash)
+  S -> DB : INSERT professor com saldo inicial de 1.000
+end
+
+C --> FE : 200 + resumo da importação
+FE --> A : "N professores importados"
+@enduml

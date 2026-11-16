@@ -1,0 +1,28 @@
+@startuml Sequencia_07_Extrato
+title HU10/HU11 - Consulta de extrato
+
+skinparam shadowing false
+autonumber
+
+actor "Professor ou aluno" as U
+participant "Front-end" as FE
+participant "Extrato\nController" as C
+participant "Extrato\nService" as S
+database "Banco de dados" as DB
+
+U -> FE : abre o extrato
+FE -> C : GET /api/extrato
+C -> S : extrato(usuárioLogado)
+S -> DB : busca saldo atual
+S -> DB : busca transações do usuário
+
+alt usuário é professor
+  note right of S : envios de moedas\n(aluno, quantidade, motivo, data)
+else usuário é aluno
+  note right of S : recebimentos (professor, quantidade,\nmotivo, data) e trocas (vantagem, custo, data)
+end
+
+S --> C : saldo + transações
+C --> FE : 200 + JSON
+FE --> U : exibe saldo e histórico
+@enduml

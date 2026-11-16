@@ -1,0 +1,47 @@
+@startuml Sequencia_03_Cadastro_Empresa_e_Vantagem
+title HU04/HU12/HU13 - Cadastro de empresa parceira e de vantagens
+
+skinparam shadowing false
+autonumber
+
+actor "Empresa parceira" as U
+participant "Front-end" as FE
+participant "Empresa\nController" as EC
+participant "Empresa\nService" as ES
+participant "Vantagem\nController" as VC
+participant "Vantagem\nService" as VS
+database "Banco de dados" as DB
+
+== Cadastro da empresa ==
+U -> FE : preenche dados, email, login e senha
+FE -> EC : POST /api/empresas
+EC -> ES : criar(dto)
+ES -> DB : valida CNPJ, email e login únicos
+ES -> ES : hash da senha
+ES -> DB : INSERT
+EC --> FE : 201 Created
+FE --> U : "Empresa cadastrada"
+
+== Cadastro de vantagem (após login) ==
+U -> FE : informa nome, descrição, foto e custo em moedas
+FE -> VC : POST /api/vantagens (multipart)
+VC -> VC : @Valid (todos obrigatórios)
+
+alt dados inválidos
+  VC --> FE : 400 + fieldErrors
+  FE --> U : exibe os erros
+else dados válidos
+  VC -> VS : cadastrar(empresaLogada, dto, foto)
+  VS -> DB : INSERT vantagem vinculada à empresa
+  VC --> FE : 201 Created
+  FE --> U : "Vantagem cadastrada"
+end
+
+== Editar ou remover vantagem ==
+U -> FE : edita ou remove uma vantagem própria
+FE -> VC : PUT/DELETE /api/vantagens/{id}
+VC -> VS : atualizar/excluir(id, empresaLogada)
+VS -> DB : UPDATE/DELETE
+VC --> FE : 200/204
+FE --> U : lista atualizada
+@enduml

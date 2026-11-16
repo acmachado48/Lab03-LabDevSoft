@@ -1,0 +1,47 @@
+@startuml Sequencia_02_Cadastro_Aluno
+title HU03 - Cadastro de aluno
+
+skinparam shadowing false
+autonumber
+
+actor "Aluno" as U
+participant "Front-end" as FE
+participant "Aluno\nController" as C
+participant "Aluno\nService" as S
+participant "Repositories\n(Aluno, Instituição, Usuário)" as R
+database "Banco de dados" as DB
+
+U -> FE : abre o cadastro
+FE -> C : GET /api/instituicoes
+C -> R : lista instituições pré-cadastradas
+R -> DB : SELECT
+DB --> R : instituições
+C --> FE : 200 + lista
+FE --> U : mostra a lista para selecionar
+
+U -> FE : preenche nome, email, CPF, RG,\nendereço, instituição, curso, login e senha
+FE -> C : POST /api/alunos
+C -> C : @Valid (todos obrigatórios)
+
+alt dados inválidos
+  C --> FE : 400 + fieldErrors
+  FE --> U : erro em cada campo
+else dados válidos
+  C -> S : cadastrar(dto)
+  S -> R : existe CPF, email ou login?
+  R -> DB : SELECT
+  DB --> R : resultado
+
+  alt já cadastrado
+    S --> C : BusinessException
+    C --> FE : 409 + mensagem
+    FE --> U : exibe a mensagem
+  else único
+    S -> S : hash da senha, saldo inicial = 0
+    S -> R : save(aluno)
+    R -> DB : INSERT
+    C --> FE : 201 Created
+    FE --> U : "Cadastro realizado"
+  end
+end
+@enduml
